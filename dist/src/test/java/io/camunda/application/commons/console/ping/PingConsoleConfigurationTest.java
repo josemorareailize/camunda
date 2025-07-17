@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.application.commons.console.ping.PingConsoleRunner.ConsolePingConfiguration;
 import io.camunda.service.ManagementServices;
 import io.camunda.service.license.LicenseType;
+import io.camunda.zeebe.broker.client.api.BrokerTopologyManager;
 import io.camunda.zeebe.util.retry.RetryConfiguration;
 import java.io.IOException;
 import java.net.URI;
@@ -36,6 +37,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PingConsoleConfigurationTest {
 
   private static final ManagementServices MANAGEMENT_SERVICES = mock(ManagementServices.class);
+  private static final BrokerTopologyManager BROKER_TOPOLOGY_MANAGER =
+      mock(BrokerTopologyManager.class);
   private final ConsolePingConfiguration pingConfiguration =
       new ConsolePingConfiguration(
           true,
@@ -74,7 +77,8 @@ class PingConsoleConfigurationTest {
     final IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES)
+            new PingConsoleRunner(
+                    consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER)
                 ::validateConfiguration);
     assertEquals("Ping endpoint must not be null.", exception.getMessage());
   }
@@ -96,7 +100,8 @@ class PingConsoleConfigurationTest {
     final IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES)
+            new PingConsoleRunner(
+                    consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER)
                 ::validateConfiguration);
     assertEquals("Ping endpoint 123 must be a valid URI.", exception.getMessage());
   }
@@ -118,7 +123,8 @@ class PingConsoleConfigurationTest {
     final IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES)
+            new PingConsoleRunner(
+                    consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER)
                 ::validateConfiguration);
     assertEquals("Cluster ID must not be null or empty.", exception.getMessage());
   }
@@ -140,7 +146,8 @@ class PingConsoleConfigurationTest {
     final IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES)
+            new PingConsoleRunner(
+                    consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER)
                 ::validateConfiguration);
     assertEquals("Cluster name must not be null or empty.", exception.getMessage());
   }
@@ -162,7 +169,8 @@ class PingConsoleConfigurationTest {
     final IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES)
+            new PingConsoleRunner(
+                    consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER)
                 ::validateConfiguration);
     assertEquals("Ping period must be greater than zero.", exception.getMessage());
   }
@@ -187,7 +195,8 @@ class PingConsoleConfigurationTest {
     final IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES)
+            new PingConsoleRunner(
+                    consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER)
                 ::validateConfiguration);
     assertEquals("Number of max retries must be greater than zero.", exception.getMessage());
   }
@@ -212,7 +221,8 @@ class PingConsoleConfigurationTest {
     final IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES)
+            new PingConsoleRunner(
+                    consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER)
                 ::validateConfiguration);
     assertEquals("Retry delay multiplier must be greater than zero.", exception.getMessage());
   }
@@ -231,7 +241,10 @@ class PingConsoleConfigurationTest {
             null);
 
     // then
-    assertDoesNotThrow(() -> new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES));
+    assertDoesNotThrow(
+        () ->
+            new PingConsoleRunner(
+                consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER));
   }
 
   @Test
@@ -254,7 +267,8 @@ class PingConsoleConfigurationTest {
     final IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES)
+            new PingConsoleRunner(
+                    consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER)
                 ::validateConfiguration);
     assertEquals("Max retry delay must be greater than zero.", exception.getMessage());
   }
@@ -279,7 +293,8 @@ class PingConsoleConfigurationTest {
     final IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES)
+            new PingConsoleRunner(
+                    consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER)
                 ::validateConfiguration);
     assertEquals("Min retry delay must be greater than zero.", exception.getMessage());
   }
@@ -305,7 +320,8 @@ class PingConsoleConfigurationTest {
     final IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES)
+            new PingConsoleRunner(
+                    consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER)
                 ::validateConfiguration);
     assertEquals(
         "Max retry delay must be greater than or equal to min retry delay.",
@@ -325,7 +341,10 @@ class PingConsoleConfigurationTest {
             new RetryConfiguration(),
             null);
     // then
-    assertDoesNotThrow(() -> new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES));
+    assertDoesNotThrow(
+        () ->
+            new PingConsoleRunner(
+                consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER));
   }
 
   @Test
@@ -342,7 +361,10 @@ class PingConsoleConfigurationTest {
             null);
 
     // then we assert that it is not throwing an exception due to the feature being disabled
-    assertDoesNotThrow(() -> new PingConsoleRunner(consolePingConfiguration, MANAGEMENT_SERVICES));
+    assertDoesNotThrow(
+        () ->
+            new PingConsoleRunner(
+                consolePingConfiguration, MANAGEMENT_SERVICES, BROKER_TOPOLOGY_MANAGER));
   }
 
   @Test
