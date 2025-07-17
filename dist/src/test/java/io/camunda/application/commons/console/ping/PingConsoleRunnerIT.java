@@ -24,6 +24,7 @@ import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.camunda.application.commons.console.ping.PingConsoleRunner.ConsolePingConfiguration;
 import io.camunda.service.ManagementServices;
 import io.camunda.service.license.LicenseType;
+import io.camunda.zeebe.broker.client.api.BrokerTopologyManager;
 import io.camunda.zeebe.util.VersionUtil;
 import io.camunda.zeebe.util.retry.RetryConfiguration;
 import java.net.URI;
@@ -38,6 +39,7 @@ public class PingConsoleRunnerIT {
 
   private WireMockServer wireMockServer;
   private ManagementServices managementServices;
+  private BrokerTopologyManager brokerTopologyManager;
 
   @BeforeEach
   void setup() {
@@ -87,7 +89,8 @@ public class PingConsoleRunnerIT {
             retryConfig,
             null);
 
-    final PingConsoleRunner pingConsoleRunner = new PingConsoleRunner(config, managementServices);
+    final PingConsoleRunner pingConsoleRunner =
+        new PingConsoleRunner(config, managementServices, brokerTopologyManager);
 
     // when
     pingConsoleRunner.run(null);
