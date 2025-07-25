@@ -16,6 +16,7 @@
 package io.camunda.client.api.command;
 
 import io.camunda.client.protocol.rest.JobResult.TypeEnum;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -126,7 +127,7 @@ public class CompleteUserTaskJobResult implements CompleteJobResult {
    * @param dueDate due date of the task
    * @return this job result
    */
-  public CompleteUserTaskJobResult correctDueDate(final String dueDate) {
+  public CompleteUserTaskJobResult correctDueDate(final OffsetDateTime dueDate) {
     corrections.dueDate(dueDate);
     return this;
   }
@@ -137,7 +138,7 @@ public class CompleteUserTaskJobResult implements CompleteJobResult {
    * @param followUpDate follow up date of the task
    * @return this job result
    */
-  public CompleteUserTaskJobResult correctFollowUpDate(final String followUpDate) {
+  public CompleteUserTaskJobResult correctFollowUpDate(final OffsetDateTime followUpDate) {
     corrections.followUpDate(followUpDate);
     return this;
   }

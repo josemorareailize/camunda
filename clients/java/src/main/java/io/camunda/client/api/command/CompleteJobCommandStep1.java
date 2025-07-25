@@ -97,9 +97,9 @@ public interface CompleteJobCommandStep1
      * <pre>{@code
      * client.newCompleteJobCommand(jobKey)
      *     .withResult()
-     *     .correctAssignee("john_doe")                 // dynamically reassigns the task to 'john_doe'
-     *     .correctPriority(84)                         // adjusts the priority of the task
-     *     .correctDueDate("2024-11-22T11:44:55.0000Z") // sets a new due date
+     *     .correctAssignee("john_doe")                                   // dynamically reassigns the task to 'john_doe'
+     *     .correctPriority(84)                                           // adjusts the priority of the task
+     *     .correctDueDate(OffsetDateTime.parse("2024-11-22T11:44:55Z"))  // sets a new due date
      *     .send();
      * }</pre>
      *

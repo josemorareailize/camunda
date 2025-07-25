@@ -28,6 +28,7 @@ import io.camunda.client.util.ClientRestTest;
 import io.camunda.client.util.JsonUtil;
 import io.camunda.client.util.StringUtil;
 import java.io.ByteArrayInputStream;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -284,8 +285,8 @@ class CompleteJobRestTest extends ClientRestTest {
             r ->
                 r.forUserTask()
                     .correctAssignee("Test")
-                    .correctDueDate("due date")
-                    .correctFollowUpDate("follow up date")
+                    .correctDueDate(OffsetDateTime.parse("2024-01-15T10:30:00Z"))
+                    .correctFollowUpDate(OffsetDateTime.parse("2024-01-20T15:45:00Z"))
                     .correctCandidateUsers(Arrays.asList("User A", "User B"))
                     .correctCandidateGroups(Arrays.asList("Group A", "Group B"))
                     .correctPriority(80))
@@ -304,8 +305,8 @@ class CompleteJobRestTest extends ClientRestTest {
                     .corrections(
                         new io.camunda.client.protocol.rest.JobResultCorrections()
                             .assignee("Test")
-                            .dueDate("due date")
-                            .followUpDate("follow up date")
+                            .dueDate(OffsetDateTime.parse("2024-01-15T10:30:00Z"))
+                            .followUpDate(OffsetDateTime.parse("2024-01-20T15:45:00Z"))
                             .candidateUsers(Arrays.asList("User A", "User B"))
                             .candidateGroups(Arrays.asList("Group A", "Group B"))
                             .priority(80)));
@@ -325,8 +326,8 @@ class CompleteJobRestTest extends ClientRestTest {
             r ->
                 r.forUserTask()
                     .correctAssignee("Test")
-                    .correctDueDate("due date")
-                    .correctFollowUpDate("")
+                    .correctDueDate(OffsetDateTime.parse("2024-01-15T10:30:00Z"))
+                    .correctFollowUpDate(null)
                     .correctCandidateUsers(Arrays.asList("User A", "User B"))
                     .correctPriority(80))
         .send()
@@ -344,8 +345,8 @@ class CompleteJobRestTest extends ClientRestTest {
                     .corrections(
                         new io.camunda.client.protocol.rest.JobResultCorrections()
                             .assignee("Test")
-                            .dueDate("due date")
-                            .followUpDate("")
+                            .dueDate(OffsetDateTime.parse("2024-01-15T10:30:00Z"))
+                            .followUpDate(null)
                             .candidateUsers(Arrays.asList("User A", "User B"))
                             .candidateGroups(null)
                             .priority(80)));
@@ -408,7 +409,7 @@ class CompleteJobRestTest extends ClientRestTest {
                     .deny(false)
                     .correctAssignee("Test")
                     .correctDueDate(null)
-                    .correctFollowUpDate("")
+                    .correctFollowUpDate(null)
                     .correctCandidateUsers(Arrays.asList("User A", "User B"))
                     .correctPriority(80))
         .send()
@@ -427,7 +428,7 @@ class CompleteJobRestTest extends ClientRestTest {
                         new io.camunda.client.protocol.rest.JobResultCorrections()
                             .assignee("Test")
                             .dueDate(null)
-                            .followUpDate("")
+                            .followUpDate(null)
                             .candidateUsers(Arrays.asList("User A", "User B"))
                             .candidateGroups(null)
                             .priority(80)));
@@ -450,7 +451,7 @@ class CompleteJobRestTest extends ClientRestTest {
                         c ->
                             c.assignee("Test")
                                 .dueDate(null)
-                                .followUpDate("")
+                                .followUpDate(null)
                                 .candidateUsers(Arrays.asList("User A", "User B"))
                                 .priority(80)))
         .send()
@@ -469,7 +470,7 @@ class CompleteJobRestTest extends ClientRestTest {
                         new io.camunda.client.protocol.rest.JobResultCorrections()
                             .assignee("Test")
                             .dueDate(null)
-                            .followUpDate("")
+                            .followUpDate(null)
                             .candidateUsers(Arrays.asList("User A", "User B"))
                             .candidateGroups(null)
                             .priority(80)));
