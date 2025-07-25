@@ -21,6 +21,7 @@ import io.camunda.client.impl.util.EnumUtil;
 import io.camunda.client.impl.util.ParseUtil;
 import io.camunda.client.protocol.rest.BatchOperationItemResponse;
 import io.camunda.client.protocol.rest.BatchOperationItemSearchQueryResult;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +47,7 @@ public class BatchOperationItemsImpl implements BatchOperationItems {
     private final Long itemKey;
     private final Long processInstanceKey;
     private final BatchOperationItemState status;
-    private final String processedDate;
+    private final OffsetDateTime processedDate;
     private final String errorMessage;
 
     public BatchOperationItemImpl(final BatchOperationItemResponse item) {
@@ -54,7 +55,7 @@ public class BatchOperationItemsImpl implements BatchOperationItems {
       itemKey = ParseUtil.parseLongOrNull(item.getItemKey());
       processInstanceKey = ParseUtil.parseLongOrNull(item.getProcessInstanceKey());
       status = EnumUtil.convert(item.getState(), BatchOperationItemState.class);
-      processedDate = item.getProcessedDate() != null ? item.getProcessedDate().toString() : null;
+      processedDate = item.getProcessedDate();
       errorMessage = item.getErrorMessage();
     }
 
@@ -74,7 +75,7 @@ public class BatchOperationItemsImpl implements BatchOperationItems {
     }
 
     @Override
-    public String getProcessedDate() {
+    public OffsetDateTime getProcessedDate() {
       return processedDate;
     }
 
