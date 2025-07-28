@@ -15,8 +15,6 @@
  */
 package io.camunda.process.test.api.coverage.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Collection;
 import java.util.List;
 
@@ -27,10 +25,7 @@ public class Run {
 
   private final List<Coverage> coverages;
 
-  @JsonCreator
-  public Run(
-      @JsonProperty("name") final String name,
-      @JsonProperty("coverages") final List<Coverage> coverages) {
+  public Run(final String name, final List<Coverage> coverages) {
     this.name = name;
     this.coverages = coverages;
   }

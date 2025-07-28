@@ -49,7 +49,8 @@ public class ProcessCoverage {
       final Consumer<String> printStream,
       final Supplier<CamundaDataSource> dataSourceSupplier) {
     coverageCollector =
-        new CoverageCollector(testClass, excludedProcessDefinitionIds, dataSourceSupplier);
+        CoverageCollector.createCollector(
+            testClass, excludedProcessDefinitionIds, dataSourceSupplier);
     coverageReporter = new CoverageReporter(reportDirectory, printStream);
   }
 

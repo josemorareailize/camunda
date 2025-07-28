@@ -21,6 +21,7 @@ import io.camunda.process.test.api.coverage.model.Model;
 import io.camunda.process.test.api.coverage.model.Run;
 import io.camunda.process.test.api.coverage.model.Suite;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -35,11 +36,21 @@ import java.util.stream.Collectors;
  * organizing it into test runs within a suite, and maintaining model information for the processes
  * being tested.
  */
-public class CoverageCollector {
+public final class CoverageCollector {
+  private static final List<CoverageCollector> COLLECTORS = new ArrayList<>();
   private final List<String> excludedProcessDefinitionIds;
   private final Supplier<CamundaDataSource> dataSourceSupplier;
   private final Map<String, Model> models = new HashMap<>();
   private final Suite suite;
+
+  private CoverageCollector(
+      final Class<?> testClass,
+      final List<String> excludedProcessDefinitionIds,
+      final Supplier<CamundaDataSource> dataSourceSupplier) {
+    this.excludedProcessDefinitionIds = excludedProcessDefinitionIds;
+    this.dataSourceSupplier = dataSourceSupplier;
+    suite = new Suite(testClass.getName(), testClass.getSimpleName());
+  }
 
   /**
    * Creates a new coverage collector for a specific test class.
@@ -49,13 +60,27 @@ public class CoverageCollector {
    *     analysis
    * @param dataSourceSupplier Supplier for the Camunda data source used to access process data
    */
-  public CoverageCollector(
+  public static CoverageCollector createCollector(
       final Class<?> testClass,
       final List<String> excludedProcessDefinitionIds,
       final Supplier<CamundaDataSource> dataSourceSupplier) {
-    this.excludedProcessDefinitionIds = excludedProcessDefinitionIds;
-    this.dataSourceSupplier = dataSourceSupplier;
-    suite = new Suite(testClass.getName(), testClass.getSimpleName());
+    final CoverageCollector collector =
+        new CoverageCollector(testClass, excludedProcessDefinitionIds, dataSourceSupplier);
+    COLLECTORS.add(collector);
+    return collector;
+  }
+
+  /**
+   * Returns all active coverage collectors.
+   *
+   * <p>This method provides access to all coverage collectors that have been created during the
+   * test execution. These collectors contain coverage data for each test suite and can be used to
+   * generate aggregated coverage reports across multiple test classes.
+   *
+   * @return A collection of all active CoverageCollector instances
+   */
+  public static Collection<CoverageCollector> collectors() {
+    return COLLECTORS;
   }
 
   /**

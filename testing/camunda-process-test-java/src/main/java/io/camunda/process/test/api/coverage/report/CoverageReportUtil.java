@@ -18,15 +18,13 @@ package io.camunda.process.test.api.coverage.report;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 
 /**
  * Utility class for JSON serialization and deserialization of coverage reports.
  *
- * <p>This class provides methods to convert CoverageReport objects to and from JSON format,
- * supporting both string-based and file-based operations. It's used in the process coverage
- * reporting workflow to store and retrieve coverage data.
+ * <p>This class provides methods to convert CoverageReport objects to and from JSON format. It's
+ * used in the process coverage reporting workflow to store coverage data.
  */
 public class CoverageReportUtil {
 
@@ -35,45 +33,15 @@ public class CoverageReportUtil {
   /**
    * Serializes a CoverageReport object to a JSON string.
    *
-   * @param coverageReport The report object to serialize
+   * @param report The report object to serialize
    * @return JSON string representation of the coverage report
    * @throws RuntimeException if serialization fails
    */
-  public static String toJson(final CoverageReport coverageReport) {
+  public static String toJson(final Object report) {
     try {
-      return OBJECT_MAPPER.writeValueAsString(coverageReport);
+      return OBJECT_MAPPER.writer().withDefaultPrettyPrinter().writeValueAsString(report);
     } catch (final JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize object to Json : " + e);
-    }
-  }
-
-  /**
-   * Deserializes a JSON string to a CoverageReport object.
-   *
-   * @param json The JSON string to parse
-   * @return The deserialized CoverageReport object
-   * @throws RuntimeException if deserialization fails
-   */
-  public static CoverageReport fromJson(final String json) {
-    try {
-      return OBJECT_MAPPER.readValue(json, CoverageReport.class);
-    } catch (final IOException e) {
-      throw new RuntimeException("Failed to serialize Json to object : " + e);
-    }
-  }
-
-  /**
-   * Reads and deserializes a CoverageReport from a JSON file.
-   *
-   * @param jsonFile The file containing the JSON representation of a coverage report
-   * @return The deserialized CoverageReport object
-   * @throws RuntimeException if file reading or deserialization fails
-   */
-  public static CoverageReport fromJsonFile(final File jsonFile) {
-    try {
-      return fromJson(new String(Files.readAllBytes(jsonFile.toPath()), StandardCharsets.UTF_8));
-    } catch (final IOException e) {
-      throw new RuntimeException("Failed to read JSON : " + e);
     }
   }
 }

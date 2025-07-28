@@ -17,26 +17,15 @@ package io.camunda.process.test.api.coverage.report;
 
 import io.camunda.process.test.api.coverage.model.Coverage;
 import io.camunda.process.test.api.coverage.model.Model;
-import io.camunda.process.test.api.coverage.model.Suite;
 import java.util.Collection;
-import java.util.Collections;
 
-/** Container class for process coverage reporting data. */
-public class CoverageReport {
-
-  private final Collection<Suite> suites;
+public class AggregatedCoverageReport {
+  private final Collection<AggregatedSuiteInfo> suites;
   private final Collection<Model> models;
   private final Collection<Coverage> coverages;
 
-  /**
-   * Creates a coverage report with the specified data collections.
-   *
-   * @param suites Collection of test suites containing coverage information
-   * @param models Collection of process models with structure information
-   * @param coverages Collection of coverage results for process instances
-   */
-  public CoverageReport(
-      final Collection<Suite> suites,
+  public AggregatedCoverageReport(
+      final Collection<AggregatedSuiteInfo> suites,
       final Collection<Model> models,
       final Collection<Coverage> coverages) {
     this.suites = suites;
@@ -44,17 +33,7 @@ public class CoverageReport {
     this.coverages = coverages;
   }
 
-  /**
-   * Creates an empty coverage report.
-   *
-   * <p>Initializes all collections as empty. Useful as a starting point for building reports by
-   * aggregating data later.
-   */
-  public CoverageReport() {
-    this(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
-  }
-
-  public Collection<Suite> getSuites() {
+  public Collection<AggregatedSuiteInfo> getSuites() {
     return suites;
   }
 

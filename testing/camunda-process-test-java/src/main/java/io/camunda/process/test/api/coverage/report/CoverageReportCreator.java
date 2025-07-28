@@ -19,12 +19,8 @@ import io.camunda.process.test.api.coverage.core.CoverageCreator;
 import io.camunda.process.test.api.coverage.model.Coverage;
 import io.camunda.process.test.api.coverage.model.Model;
 import io.camunda.process.test.api.coverage.model.Suite;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /** Utility class for creating and aggregating coverage reports. */
@@ -36,8 +32,12 @@ public class CoverageReportCreator {
    * @param models Collection of process models with structure information
    * @return A CoverageReport containing the suite, models and aggregated coverage data
    */
-  public static CoverageReport create(final Suite suite, final Collection<Model> models) {
-    return create(Collections.singletonList(suite), models);
+  public static SuiteCoverageReport createSuiteCoverageReport(
+      final Suite suite, final Collection<Model> models) {
+    final Collection<Coverage> coverages =
+        CoverageCreator.aggregateCoverages(allCoverages(Collections.singletonList(suite)), models);
+    return new SuiteCoverageReport(
+        suite.getId(), suite.getName(), suite.getRuns(), models, coverages);
   }
 
   /**
@@ -47,42 +47,21 @@ public class CoverageReportCreator {
    * @param models Collection of process models with structure information
    * @return A CoverageReport containing all suites, models and aggregated coverage data
    */
-  public static CoverageReport create(
+  public static AggregatedCoverageReport createAggregatedCoverageReport(
       final Collection<Suite> suites, final Collection<Model> models) {
     final Collection<Coverage> coverages =
         CoverageCreator.aggregateCoverages(allCoverages(suites), models);
-    return new CoverageReport(suites, models, coverages);
-  }
-
-  /**
-   * Merges an existing coverage report with a new one, preserving data from both.
-   *
-   * <p>This method combines suites and models from both reports, prioritizing newer data when there
-   * are conflicts. Coverages are aggregated based on the merged data.
-   *
-   * @param oldReport The existing coverage report to merge from
-   * @param newReport The new coverage report to merge with
-   * @return A new CoverageReport containing the merged and aggregated data
-   */
-  public static CoverageReport aggregatedReport(
-      final CoverageReport oldReport, final CoverageReport newReport) {
-    // Merge models, replacing with new ones (by id) if they exist
-    final Map<String, Suite> suiteMap = new HashMap<>();
-    oldReport.getSuites().forEach(suite -> suiteMap.put(suite.getId(), suite));
-    newReport.getSuites().forEach(suite -> suiteMap.put(suite.getId(), suite));
-    final List<Suite> mergedSuites = new ArrayList<>(suiteMap.values());
-
-    // Merge models, replacing with new ones (by processDefinitionId) if they exist
-    final Map<String, Model> modelMap = new HashMap<>();
-    oldReport.getModels().forEach(model -> modelMap.put(model.getProcessDefinitionId(), model));
-    newReport.getModels().forEach(model -> modelMap.put(model.getProcessDefinitionId(), model));
-
-    // Collect and aggregate all coverages
-    final Collection<Coverage> allCoverages = allCoverages(suiteMap.values());
-    final Collection<Coverage> aggregatedCoverages =
-        CoverageCreator.aggregateCoverages(allCoverages, modelMap.values());
-
-    return new CoverageReport(mergedSuites, modelMap.values(), aggregatedCoverages);
+    final Collection<AggregatedSuiteInfo> suiteInfos =
+        suites.stream()
+            .map(
+                suite ->
+                    new AggregatedSuiteInfo(
+                        suite.getId(),
+                        suite.getName(),
+                        CoverageCreator.aggregateCoverages(
+                            allCoverages(Collections.singletonList(suite)), models)))
+            .collect(Collectors.toList());
+    return new AggregatedCoverageReport(suiteInfos, models, coverages);
   }
 
   /**

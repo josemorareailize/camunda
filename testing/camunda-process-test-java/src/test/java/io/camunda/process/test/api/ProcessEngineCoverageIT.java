@@ -42,7 +42,8 @@ public class ProcessEngineCoverageIT {
   void shouldCollectEventBasedGatewayFlows() {
     // given
     final CoverageCollector coverageCollector =
-        new CoverageCollector(getClass(), new ArrayList<>(), () -> new CamundaDataSource(client));
+        CoverageCollector.createCollector(
+            getClass(), new ArrayList<>(), () -> new CamundaDataSource(client));
 
     // when
     final ProcessInstanceEvent processInstance =
@@ -77,7 +78,8 @@ public class ProcessEngineCoverageIT {
   void shouldCoverProcess() {
     // given
     final CoverageCollector coverageCollector =
-        new CoverageCollector(getClass(), new ArrayList<>(), () -> new CamundaDataSource(client));
+        CoverageCollector.createCollector(
+            getClass(), new ArrayList<>(), () -> new CamundaDataSource(client));
     final Map<String, Object> variables = new HashMap<>();
 
     // when
@@ -123,7 +125,7 @@ public class ProcessEngineCoverageIT {
   void shouldExcludeProcess() {
     // given
     final CoverageCollector coverageCollector =
-        new CoverageCollector(
+        CoverageCollector.createCollector(
             getClass(),
             Collections.singletonList("test-with-event-based-gateway"),
             () -> new CamundaDataSource(client));

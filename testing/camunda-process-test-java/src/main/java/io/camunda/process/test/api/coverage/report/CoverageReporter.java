@@ -18,6 +18,7 @@ package io.camunda.process.test.api.coverage.report;
 import static java.util.Optional.ofNullable;
 
 import io.camunda.process.test.api.coverage.core.CoverageCollector;
+import io.camunda.process.test.api.coverage.core.CoverageCreator;
 import io.camunda.process.test.api.coverage.model.Coverage;
 import io.camunda.process.test.api.coverage.model.Model;
 import io.camunda.process.test.api.coverage.model.Suite;
@@ -30,6 +31,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,23 +82,20 @@ public class CoverageReporter {
    * @param coverageCollector The collector containing coverage data to report
    */
   public void reportCoverage(final CoverageCollector coverageCollector) {
-    writeJsonReport(coverageCollector.getSuite(), coverageCollector.getModels());
-    updateAndWriteAggregatedJsonReport(coverageCollector.getSuite(), coverageCollector.getModels());
-  }
+    final Collection<Suite> suites =
+        CoverageCollector.collectors().stream()
+            .map(CoverageCollector::getSuite)
+            .collect(Collectors.toList());
+    final Collection<Model> models =
+        CoverageCollector.collectors().stream()
+            .flatMap(c -> c.getModels().stream())
+            .distinct()
+            .collect(Collectors.toList());
 
-  /**
-   * Writes a JSON report file for a specific test suite.
-   *
-   * <p>Creates a suite-specific JSON report containing coverage data for all processes executed
-   * during the test suite.
-   *
-   * @param suite The test suite containing coverage information
-   * @param models Collection of process models for coverage calculation
-   */
-  private void writeJsonReport(final Suite suite, final Collection<Model> models) {
-    final File destFile = new File(resourceDirectory, suite.getId() + "/report.json");
-    writeContent(
-        destFile, () -> CoverageReportUtil.toJson(CoverageReportCreator.create(suite, models)));
+    writeJsonReport(
+        CoverageReportCreator.createSuiteCoverageReport(
+            coverageCollector.getSuite(), coverageCollector.getModels()));
+    writeJsonReport(CoverageReportCreator.createAggregatedCoverageReport(suites, models));
   }
 
   /**
@@ -109,53 +108,43 @@ public class CoverageReporter {
    */
   public void printCoverage(final CoverageCollector coverageCollector) {
     final Suite suite = coverageCollector.getSuite();
-    final CoverageReport report =
-        CoverageReportCreator.create(suite, coverageCollector.getModels());
-    printStream.accept("Process coverage: " + suite.getId());
-    printStream.accept("========================");
-    for (final Coverage coverage : report.getCoverages()) {
-      printStream.accept(
-          "- "
-              + coverage.getProcessDefinitionId()
-              + ": "
-              + String.format("%.0f", coverage.getCoverage() * 100)
-              + "%");
-    }
-    printStream.accept(
-        "\nSee more details: " + resourceDirectory + "/" + suite.getId() + "/report.json");
+    final Collection<Coverage> coverages =
+        CoverageCreator.aggregateCoverages(
+            suite.getRuns().stream()
+                .flatMap(r -> r.getCoverages().stream())
+                .collect(Collectors.toList()),
+            coverageCollector.getModels());
+    final String message =
+        "Process coverage: "
+            + suite.getId()
+            + "\n========================\n"
+            + coverages.stream()
+                .map(
+                    coverage ->
+                        "- "
+                            + coverage.getProcessDefinitionId()
+                            + ": "
+                            + String.format("%.0f", coverage.getCoverage() * 100)
+                            + "%")
+                .collect(Collectors.joining("\n"))
+            + "\n\nSee more details: "
+            + resourceDirectory
+            + "/"
+            + suite.getId()
+            + "/report.json";
+    printStream.accept(message);
   }
 
-  /**
-   * Updates and writes the aggregated coverage report.
-   *
-   * <p>Reads the existing aggregated report (if available), merges it with new coverage data, and
-   * writes the updated report to the file system. This maintains a consolidated view of coverage
-   * across multiple test suites.
-   *
-   * @param suite The test suite containing new coverage information to aggregate
-   * @param models Collection of process models for coverage calculation
-   */
-  private void updateAndWriteAggregatedJsonReport(
-      final Suite suite, final Collection<Model> models) {
+  private void writeJsonReport(final SuiteCoverageReport report) {
+    final File destFile = new File(resourceDirectory, report.getId() + "/report.json");
+    writeContent(destFile, () -> CoverageReportUtil.toJson(report));
+  }
+
+  private void writeJsonReport(final AggregatedCoverageReport aggregatedReport) {
     final File jsonFile = new File(resourceDirectory, "/report.json");
-    final CoverageReport oldReport =
-        jsonFile.exists() ? CoverageReportUtil.fromJsonFile(jsonFile) : new CoverageReport();
-    final CoverageReport aggregatedReport =
-        CoverageReportCreator.aggregatedReport(
-            oldReport, CoverageReportCreator.create(suite, models));
     writeContent(jsonFile, () -> CoverageReportUtil.toJson(aggregatedReport));
   }
 
-  /**
-   * Writes content to a file with proper directory creation and encoding.
-   *
-   * <p>Creates any necessary parent directories, then writes the supplied content to the specified
-   * file using UTF-8 encoding.
-   *
-   * @param destFile The destination file to write to
-   * @param contentProvider Supplier function that provides the content to write
-   * @throws RuntimeException if writing to the file fails
-   */
   private void writeContent(final File destFile, final Supplier<String> contentProvider) {
     try {
       if (destFile.getParentFile() != null && !destFile.getParentFile().exists()) {

@@ -15,9 +15,6 @@
  */
 package io.camunda.process.test.api.coverage.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 public class Model {
 
   /** Key of the model. */
@@ -32,12 +29,11 @@ public class Model {
   /** XML representation of the model. */
   private final String xml;
 
-  @JsonCreator
   public Model(
-      @JsonProperty("processDefinitionId") final String processDefinitionId,
-      @JsonProperty("totalElementCount") final int totalElementCount,
-      @JsonProperty("version") final String version,
-      @JsonProperty("xml") final String xml) {
+      final String processDefinitionId,
+      final int totalElementCount,
+      final String version,
+      final String xml) {
     this.processDefinitionId = processDefinitionId;
     this.totalElementCount = totalElementCount;
     this.version = version;
@@ -56,7 +52,7 @@ public class Model {
     return totalElementCount;
   }
 
-  public String getXml() {
+  public String xml() {
     return xml;
   }
 }

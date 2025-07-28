@@ -15,8 +15,6 @@
  */
 package io.camunda.process.test.api.coverage.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class Coverage {
@@ -25,12 +23,11 @@ public class Coverage {
   private final List<String> takenSequenceFlows;
   private final double coverage;
 
-  @JsonCreator
   public Coverage(
-      @JsonProperty("processDefinitionId") final String processDefinitionId,
-      @JsonProperty("completedElements") final List<String> completedElements,
-      @JsonProperty("takenSequenceFlows") final List<String> takenSequenceFlows,
-      @JsonProperty("coverage") final double coverage) {
+      final String processDefinitionId,
+      final List<String> completedElements,
+      final List<String> takenSequenceFlows,
+      final double coverage) {
     this.processDefinitionId = processDefinitionId;
     this.completedElements = completedElements;
     this.takenSequenceFlows = takenSequenceFlows;
