@@ -7,6 +7,7 @@
  */
 package io.camunda.configuration;
 
+import io.camunda.configuration.Backup.BackupStoreType;
 import io.camunda.configuration.Gcs.GcsBackupStoreAuth;
 import java.io.File;
 import java.util.HashSet;
@@ -219,6 +220,7 @@ public class UnifiedConfigurationHelper {
       case "GcsBackupStoreAuth" -> (T) GcsBackupStoreAuth.valueOf(strValue.toUpperCase());
       case "File" -> (T) new File(strValue);
       case "SasTokenType" -> (T) SasToken.SasTokenType.valueOf(strValue.toUpperCase());
+      case "BackupStoreType" -> (T) BackupStoreType.valueOf(strValue.toUpperCase());
       default -> throw new IllegalArgumentException("Unsupported type: " + type);
     };
   }
