@@ -966,7 +966,7 @@ public class ClusteringRule extends ExternalResource {
     final var workingDir =
         new WorkingDirectoryConfiguration.WorkingDirectory(brokerBase.toPath(), false);
 
-    return new BrokerBasedConfiguration(workingDir, cfg, new LifecycleProperties());
+    return new BrokerBasedConfiguration(workingDir, cfg, new LifecycleProperties(), null);
   }
 
   public Leader getCurrentLeaderForPartition(final int partition) {
