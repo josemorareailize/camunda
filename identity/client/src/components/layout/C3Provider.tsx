@@ -47,19 +47,15 @@ const C3Provider: React.FC<Props> = ({ children }) => {
     return children;
   }
 
-  if (!window.clientConfig?.organizationId) {
-    return <>{children}</>;
-  }
-
   return (
     <C3UserConfigurationProvider
-      activeOrganizationId={window.clientConfig?.organizationId}
+      activeOrganizationId={organizationId}
+      currentClusterUuid={clusterId}
       userToken={token || ""}
       getNewUserToken={async () => {
         const { data } = await getToken();
         return data || "";
       }}
-      currentClusterUuid={window.clientConfig?.clusterId}
       currentApp="identity"
       stage={STAGE === "unknown" ? "dev" : STAGE}
     >
