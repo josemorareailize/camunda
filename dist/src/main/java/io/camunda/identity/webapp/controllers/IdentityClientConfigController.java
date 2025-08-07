@@ -27,6 +27,8 @@ public class IdentityClientConfigController {
   private static final String VITE_IS_OIDC = "VITE_IS_OIDC";
   private static final String VITE_CAMUNDA_GROUPS_ENABLED = "VITE_CAMUNDA_GROUPS_ENABLED";
   private static final String VITE_TENANTS_API_ENABLED = "VITE_TENANTS_API_ENABLED";
+  private static final String ORGANIZATION_ID = "organizationId";
+  private static final String CLUSTER_ID = "clusterId";
   private static final String FALLBACK_CONFIG_JS = "window.clientConfig = {};";
   private static final String CONFIG_JS_TEMPLATE = "window.clientConfig = %s;";
 
@@ -50,11 +52,14 @@ public class IdentityClientConfigController {
   }
 
   private Map<String, String> createConfigMap(final SecurityConfiguration securityConfiguration) {
+    final var saasConfiguration = securityConfiguration.getSaas();
     return Map.of(
         VITE_IS_OIDC, String.valueOf(isOidcAuthentication(securityConfiguration)),
         VITE_CAMUNDA_GROUPS_ENABLED, String.valueOf(isCamundaGroupsEnabled(securityConfiguration)),
         VITE_TENANTS_API_ENABLED,
-            String.valueOf(securityConfiguration.getMultiTenancy().isApiEnabled()));
+            String.valueOf(securityConfiguration.getMultiTenancy().isApiEnabled()),
+        ORGANIZATION_ID, saasConfiguration.getOrganizationId(),
+        CLUSTER_ID, saasConfiguration.getClusterId());
   }
 
   private boolean isOidcAuthentication(final SecurityConfiguration securityConfiguration) {
