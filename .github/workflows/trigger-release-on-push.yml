@@ -13,8 +13,8 @@ jobs:
       fail-fast: true
     with:
       releaseBranch: "28529-introduce-releaseProcessDryRun"
-      releaseVersion: "8.0.0"
-      nextDevelopmentVersion: '8.0.0-SNAPSHOT'
+      releaseVersion: "8.3.0"
+      nextDevelopmentVersion: '8.3.0-SNAPSHOT'
       isLatest: false
-      dryRun: true
-      releaseProcessDryRun: false
+      dryRun: false
+      releaseProcessDryRun: true
