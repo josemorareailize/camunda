@@ -44,15 +44,57 @@ class IdentityClientConfigControllerTest {
     return Stream.of(
         // AuthMethod, GroupsClaim, MultiTenancyEnabled, ExpectedIsOidc, ExpectedCamundaGroups,
         // ExpectedTenantsApi, ExpectedOrganizationId, ExpectedClusterId
-        Arguments.of(AuthenticationMethod.OIDC,  null, true, "true", "true", "true", "test-org", "test-cluster"),
-        Arguments.of(AuthenticationMethod.OIDC,  null, false, "true", "true", "false", "test-org", "test-cluster"),
-        Arguments.of(AuthenticationMethod.OIDC,  "", false, "true", "true", "false", "test-org", "test-cluster"),
-        Arguments.of(AuthenticationMethod.OIDC, "groups", true, "true", "false", "true", "test-org", "test-cluster"),
-        Arguments.of(AuthenticationMethod.OIDC, "groups", false, "true", "false", "false", "test-org", "test-cluster"),
-        Arguments.of(AuthenticationMethod.BASIC,  null, true, "false", "true", "true", "test-org", "test-cluster"),
-        Arguments.of(AuthenticationMethod.BASIC,  null, false, "false", "true", "false", "test-org", "test-cluster"),
-        Arguments.of(AuthenticationMethod.BASIC, "groups", true, "false", "true", "true", "test-org", "test-cluster"),
-        Arguments.of(AuthenticationMethod.BASIC, "groups", false, "false", "true", "false", "test-org", "test-cluster"));
+        Arguments.of(
+            AuthenticationMethod.OIDC,
+            null,
+            true,
+            "true",
+            "true",
+            "true",
+            "test-org",
+            "test-cluster"),
+        Arguments.of(
+            AuthenticationMethod.OIDC,
+            null,
+            false,
+            "true",
+            "true",
+            "false",
+            "test-org",
+            "test-cluster"),
+        Arguments.of(
+            AuthenticationMethod.OIDC,
+            "",
+            false,
+            "true",
+            "true",
+            "false",
+            "test-org",
+            "test-cluster"),
+        Arguments.of(
+            AuthenticationMethod.OIDC,
+            "groups",
+            true,
+            "true",
+            "false",
+            "true",
+            "test-org",
+            "test-cluster"),
+        Arguments.of(
+            AuthenticationMethod.OIDC,
+            "groups",
+            false,
+            "true",
+            "false",
+            "false",
+            "test-org",
+            "test-cluster"),
+        Arguments.of(AuthenticationMethod.BASIC, null, true, "false", "true", "true", null, null),
+        Arguments.of(AuthenticationMethod.BASIC, null, false, "false", "true", "false", null, null),
+        Arguments.of(
+            AuthenticationMethod.BASIC, "groups", true, "false", "true", "true", null, null),
+        Arguments.of(
+            AuthenticationMethod.BASIC, "groups", false, "false", "true", "false", null, null));
   }
 
   @ParameterizedTest(
@@ -73,7 +115,11 @@ class IdentityClientConfigControllerTest {
     // Create controller with specific configuration
     final var securityConfiguration =
         createSecurityConfiguration(
-            authMethod, groupsClaim, multiTenancyEnabled, expectedOrganizationId, expectedClusterId);
+            authMethod,
+            groupsClaim,
+            multiTenancyEnabled,
+            expectedOrganizationId,
+            expectedClusterId);
     final var controller = new IdentityClientConfigController(securityConfiguration);
 
     // Setup MockMvc with the controller for this specific test
