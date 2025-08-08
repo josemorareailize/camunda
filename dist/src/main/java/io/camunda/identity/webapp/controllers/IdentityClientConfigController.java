@@ -52,14 +52,19 @@ public class IdentityClientConfigController {
   }
 
   private Map<String, String> createConfigMap(final SecurityConfiguration securityConfiguration) {
+    final var config = new java.util.HashMap<String, String>();
     final var saasConfiguration = securityConfiguration.getSaas();
-    return Map.of(
-        VITE_IS_OIDC, String.valueOf(isOidcAuthentication(securityConfiguration)),
-        VITE_CAMUNDA_GROUPS_ENABLED, String.valueOf(isCamundaGroupsEnabled(securityConfiguration)),
+
+    config.put(VITE_IS_OIDC, String.valueOf(isOidcAuthentication(securityConfiguration)));
+    config.put(
+        VITE_CAMUNDA_GROUPS_ENABLED, String.valueOf(isCamundaGroupsEnabled(securityConfiguration)));
+    config.put(
         VITE_TENANTS_API_ENABLED,
-            String.valueOf(securityConfiguration.getMultiTenancy().isApiEnabled()),
-        ORGANIZATION_ID, saasConfiguration.getOrganizationId(),
-        CLUSTER_ID, saasConfiguration.getClusterId());
+        String.valueOf(securityConfiguration.getMultiTenancy().isApiEnabled()));
+    config.put(ORGANIZATION_ID, saasConfiguration.getOrganizationId());
+    config.put(CLUSTER_ID, saasConfiguration.getClusterId());
+
+    return config;
   }
 
   private boolean isOidcAuthentication(final SecurityConfiguration securityConfiguration) {
