@@ -23,6 +23,7 @@ import io.camunda.process.test.api.coverage.model.Suite;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ public final class CoverageCollector {
    * @return A collection of all active CoverageCollector instances
    */
   public static Collection<CoverageCollector> collectors() {
-    return COLLECTORS;
+    return Collections.unmodifiableList(COLLECTORS);
   }
 
   /**
