@@ -22,6 +22,8 @@ import io.camunda.zeebe.broker.system.configuration.ConfigManagerCfg;
 import io.camunda.zeebe.broker.system.configuration.RaftCfg.FlushConfig;
 import io.camunda.zeebe.broker.system.configuration.ThreadsCfg;
 import io.camunda.zeebe.broker.system.configuration.backup.AzureBackupStoreConfig;
+import io.camunda.zeebe.broker.system.configuration.backup.BackupStoreCfg;
+import io.camunda.zeebe.broker.system.configuration.backup.BackupStoreCfg.BackupStoreType;
 import io.camunda.zeebe.broker.system.configuration.backup.GcsBackupStoreConfig;
 import io.camunda.zeebe.broker.system.configuration.backup.GcsBackupStoreConfig.GcsBackupStoreAuth;
 import io.camunda.zeebe.broker.system.configuration.backup.S3BackupStoreConfig;
@@ -204,7 +206,8 @@ public class BrokerBasedPropertiesOverride {
   }
 
   private void populateFromBackup(final BrokerBasedProperties override) {
-    final Backup backup = unifiedConfiguration.getCamunda().getData().getBackup();
+    final Backup backup =
+        unifiedConfiguration.getCamunda().getData().getBackup().withBrokerBackupProperties();
     final BackupStoreCfg backupStoreCfg = override.getData().getBackup();
     backupStoreCfg.setStore(BackupStoreType.valueOf(backup.getStore().name()));
 

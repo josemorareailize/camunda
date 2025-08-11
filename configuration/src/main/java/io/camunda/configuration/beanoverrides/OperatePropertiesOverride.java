@@ -7,7 +7,9 @@
  */
 package io.camunda.configuration.beanoverrides;
 
+import io.camunda.configuration.Backup;
 import io.camunda.configuration.UnifiedConfiguration;
+import io.camunda.operate.property.BackupProperties;
 import io.camunda.operate.property.OperateProperties;
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -37,9 +39,18 @@ public class OperatePropertiesOverride {
     final OperateProperties override = new OperateProperties();
     BeanUtils.copyProperties(legacyOperateProperties, override);
 
-    // TODO: Populate the bean using unifiedConfiguration
-    //  override.setSampleField(unifiedConfiguration.getSampleField());
+    pouplateFromBackup(override);
 
     return override;
+  }
+
+  private void pouplateFromBackup(final OperateProperties override) {
+    final Backup backup =
+        unifiedConfiguration.getCamunda().getData().getBackup().withOperateBackupProperties();
+    final BackupProperties backupProperties = override.getBackup();
+    backupProperties.setRepositoryName(backup.getRepositoryName());
+    backupProperties.setSnapshotTimeout(backup.getSnapshotTimeout());
+    backupProperties.setIncompleteCheckTimeoutInSeconds(
+        backup.getIncompleteCheckTimeout().getSeconds());
   }
 }
