@@ -7,6 +7,7 @@
  */
 package io.camunda.application.commons.migration;
 
+import io.atomix.cluster.AtomixCluster;
 import io.atomix.cluster.ClusterConfig;
 import io.atomix.cluster.MemberConfig;
 import io.atomix.cluster.NodeConfig;
@@ -32,6 +33,11 @@ import io.camunda.service.RoleServices;
 import io.camunda.service.TenantServices;
 import io.camunda.service.security.SecurityContextProvider;
 import io.camunda.zeebe.broker.client.api.BrokerClient;
+import io.camunda.zeebe.broker.client.api.BrokerTopologyManager;
+import io.camunda.zeebe.dynamic.config.GatewayClusterConfigurationService;
+import io.camunda.zeebe.dynamic.config.gossip.ClusterConfigurationGossiperConfig;
+import io.camunda.zeebe.scheduler.ActorScheduler;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Collectors;
@@ -198,5 +204,27 @@ public class IdentityMigrationModuleConfiguration {
     final var metricsEnabled = false;
     final var nodeId = properties.getCluster().getMemberId();
     return new SchedulerConfiguration(cpuThreads, ioThreads, metricsEnabled, "Migration", nodeId);
+  }
+
+  // @Bean
+  public GatewayClusterConfigurationService gatewayClusterTopologyService(
+      final ActorScheduler scheduler,
+      final BrokerTopologyManager brokerTopologyManager,
+      final AtomixCluster atomixCluster,
+      final MeterRegistry meterRegistry) {
+    final var service =
+        new GatewayClusterConfigurationService(
+            atomixCluster.getCommunicationService(),
+            atomixCluster.getMembershipService(),
+            properties.getCluster().getConfigManager().gossip(),
+            meterRegistry);
+    scheduler.submitActor(service).join();
+    service.addUpdateListener(brokerTopologyManager);
+    return service;
+  }
+
+  @Bean
+  public ClusterConfigurationGossiperConfig configManager() {
+    return properties.getCluster().getConfigManager().gossip();
   }
 }

@@ -18,6 +18,7 @@ import io.camunda.application.commons.actor.ActorSchedulerConfiguration.Schedule
 import io.camunda.application.commons.broker.client.BrokerClientConfiguration.BrokerClientTimeoutConfiguration;
 import io.camunda.application.commons.job.JobHandlerConfiguration.ActivateJobHandlerConfiguration;
 import io.camunda.configuration.beans.GatewayBasedProperties;
+import io.camunda.zeebe.dynamic.config.gossip.ClusterConfigurationGossiperConfig;
 import io.camunda.zeebe.gateway.RestApiCompositeFilter;
 import io.camunda.zeebe.gateway.impl.configuration.ClusterCfg;
 import io.camunda.zeebe.gateway.impl.configuration.FilterCfg;
@@ -108,6 +109,11 @@ public final class GatewayBasedConfiguration {
         .setDiscoveryConfig(discovery)
         .setMessagingConfig(messaging)
         .setProtocolConfig(membership);
+  }
+
+  @Bean
+  public ClusterConfigurationGossiperConfig configManagerCfg() {
+    return properties.getCluster().getConfigManager().gossip();
   }
 
   private MemberConfig memberConfig(final ClusterCfg cluster) {
