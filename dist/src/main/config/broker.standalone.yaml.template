@@ -99,15 +99,6 @@
         # This setting can also be overridden using the environment variable ZEEBE_BROKER_GATEWAY_LONGPOLLING_ENABLED.
         # enabled: true
 
-      # multiTenancy:
-        # Enables multi tenancy for the gateway.
-        # When enabled, the gateway enhances requests with the authorized tenant ids of the requester.
-        # It also rejects requests that specify a tenant id that the requester is not authorized to access.
-        # When disabled, the gateway enhances requests with the default tenant id '<default>'.
-        #
-        # This setting can also be overridden using the environment variable ZEEBE_BROKER_GATEWAY_MULTITENANCY_ENABLED.
-        enabled: false
-
       # interceptors:
         # Configure interceptors below.
         # Please consider reading our documentation on interceptors first.
@@ -169,6 +160,16 @@
       # Sets the maximum size of the incoming and outgoing messages (i.e. commands and events).
       # This setting can also be overridden using the environment variable ZEEBE_BROKER_NETWORK_MAXMESSAGESIZE.
       # maxMessageSize: 4MB
+
+      # Sets the size of the socket receive buffer (SO_RCVBUF), for example 1MB.
+      # When not set (the default), the operating system can determine the optimal size automatically.
+      # This setting can also be overridden using the environment variable ZEEBE_BROKER_NETWORK_SOCKETRECEIVEBUFFER.
+      # socketReceiveBuffer:
+
+      # Sets the size of the socket send buffer (SO_SNDBUF), for example 1MB.
+      # When not set (the default), the operating system can determine the optimal size automatically.
+      # This setting can also be overridden using the environment variable ZEEBE_BROKER_NETWORK_SOCKETSENDBUFFER.
+      # socketSendBuffer:
 
       # Connections that did not receive any message within the specified timeout will be closed.
       # This setting can also be overridden using the environment variable ZEEBE_BROKER_NETWORK_HEARTBEATTIMEOUT.
@@ -874,6 +875,7 @@
         #
         #     numberOfShards: 3
         #     numberOfReplicas: 0
+        #     templatePriority: 100
         #
         #     command: false
         #     event: true
@@ -957,6 +959,7 @@
         #
         #     numberOfShards: 3
         #     numberOfReplicas: 0
+        #     templatePriority: 100
         #
         #     command: false
         #     event: true
@@ -1002,7 +1005,7 @@
       #
       # These setting can also be overridden using the environment variables "ZEEBE_BROKER_EXPORTERS_CAMUNDAEXPORTER_..."
       #
-      # camundaExporter:
+      # camundaexporter:
         # className: io.camunda.exporter.CamundaExporter
         #
         # args:
@@ -1030,7 +1033,7 @@
         #     zeebeExporterIndexPrefix: zeebe-record
         #     The 'zeebeIndexPrefix' must be the same value as the Elasticsearch/OpenSearch exporter 'elasticsearch.args.index.prefix'
         #     otherwise the exporter may never start.
-        #     numberOfShards: 3
+        #     numberOfShards: 1
         #     numberOfReplicas: 0
         #     variableSizeThreshold: 8191
         #
@@ -1059,6 +1062,34 @@
         #
         #   batchOperationCache:
         #     maxCacheSize: 10000
+
+      # RDBMS Exporter ----------
+      # An example configuration for the rdbms exporter:
+      #
+      # These setting can also be overridden using the environment variables "ZEEBE_BROKER_EXPORTERS_RDBMS_..."
+      #
+      # rdbms:
+        # The class name is not import, since spring is used to create the instance.
+        # Just the name of the exporter itself MUST be rdbms.
+        # className: RdbmsExporter
+        #
+        # args:
+        #   flushInterval: PT0.5S
+        #   maxQueueSize: 1000
+        #   history:
+        #     defaultHistoryTTL: PT1M
+        #     defaultBatchOperationHistoryTTL: PT7D
+        #     batchOperationCancelProcessInstanceHistoryTTL: PT1D
+        #     batchOperationMigrateProcessInstanceHistoryTTL: PT10D
+        #     batchOperationModifyProcessInstanceHistoryTTL: PT7D
+        #     batchOperationResolveIncidentHistoryTTL: PT5D
+        #     minHistoryCleanupInterval: PT1S
+        #     maxHistoryCleanupInterval: PT1H
+        #     historyCleanupBatchSize: 1000
+        #   processCache:
+        #     maxSize: 10000
+        #   batchOperationCache_
+        #     maxSize: 10000
 
     # processing:
       # Sets the maximum number of commands that processed within one batch.

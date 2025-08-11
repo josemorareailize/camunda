@@ -11,11 +11,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
-import io.camunda.authentication.CamundaJwtAuthenticationConverter;
 import io.camunda.authentication.config.controllers.OidcMockMvcTestHelper;
 import io.camunda.authentication.config.controllers.TestApiController;
 import io.camunda.authentication.config.controllers.WebSecurityConfigTestContext;
 import io.camunda.authentication.config.controllers.WebSecurityOidcTestContext;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -48,8 +48,8 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
  *
  * <p>Without this (i.e. in the production setup), {@link BearerTokenAuthenticationFilter} converts
  * the JWT from the Authorization header into the {@link Authentication} object using {@link
- * CamundaJwtAuthenticationConverter}. It then adds it in the {@link SecurityContext} for further
- * access.
+ * org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter}.
+ * It then adds it in the {@link SecurityContext} for further access.
  *
  * <p>With this (i.e. in this test), we set the {@link Authentication} object already before
  * entering the filter chain (see AuthenticationRequestPostProcessor#postProcessRequest). {@link
@@ -173,5 +173,51 @@ public class OidcWebSecurityConfigTest extends AbstractWebSecurityConfigTest {
 
     // then
     assertThat(testResult).hasStatusOk();
+  }
+
+  @Test
+  public void shouldReturnCsrfTokenOnAuthenticatedGetRequest() {
+    // when
+    final MvcTestResult testResult =
+        mockMvcTester
+            .get()
+            .uri("https://localhost" + TestApiController.DUMMY_WEBAPP_ENDPOINT)
+            .with(OidcMockMvcTestHelper.oidcLogin(authorizedClientRepository))
+            .exchange();
+
+    // then
+    assertThat(testResult)
+        .hasStatusOk()
+        .containsHeader(EXPECTED_CSRF_HEADER_NAME)
+        .cookies()
+        .containsCookie(EXPECTED_CSRF_TOKEN_COOKIE_NAME);
+
+    final Cookie csrfCookie = testResult.getResponse().getCookie(EXPECTED_CSRF_TOKEN_COOKIE_NAME);
+
+    assertThat(csrfCookie.isHttpOnly()).isTrue();
+    assertThat(csrfCookie.getSecure()).isTrue();
+  }
+
+  @Test
+  public void shouldNotSetSecureFlagOnCsrfCookieWhenUsingHttp() {
+    // given
+    final String webappUrl =
+        "http://localhost" + TestApiController.DUMMY_WEBAPP_ENDPOINT; // note: http - not https
+
+    // when
+    final MvcTestResult testResult =
+        mockMvcTester
+            .get()
+            .uri(webappUrl)
+            .with(OidcMockMvcTestHelper.oidcLogin(authorizedClientRepository))
+            .exchange();
+
+    // then
+    assertThat(testResult).cookies().containsCookie(EXPECTED_CSRF_TOKEN_COOKIE_NAME);
+
+    final Cookie csrfCookie = testResult.getResponse().getCookie(EXPECTED_CSRF_TOKEN_COOKIE_NAME);
+
+    assertThat(csrfCookie.isHttpOnly()).isTrue();
+    assertThat(csrfCookie.getSecure()).isFalse();
   }
 }

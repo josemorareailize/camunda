@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.DeploymentEvent;
+import io.camunda.client.api.response.EvaluateDecisionResponse;
 import io.camunda.client.api.statistics.response.UsageMetricsStatistics;
 import io.camunda.client.impl.statistics.response.UsageMetricsStatisticsImpl;
 import io.camunda.client.impl.statistics.response.UsageMetricsStatisticsItemImpl;
@@ -28,14 +29,13 @@ import java.util.function.Consumer;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 @MultiDbTest
-// TODO remove once ES/OS is complete
-@EnabledIfSystemProperty(named = "test.integration.camunda.database.type", matches = "rdbms")
 public class UsageMetricsTest {
 
   public static final OffsetDateTime NOW = OffsetDateTime.now();
+
+  public static final Duration EXPORT_INTERVAL = Duration.ofSeconds(2);
 
   @MultiDbTestApplication
   static final TestStandaloneBroker BROKER =
@@ -49,10 +49,9 @@ public class UsageMetricsTest {
                       .getExperimental()
                       .getEngine()
                       .getUsageMetrics()
-                      .setExportInterval(Duration.ofSeconds(1)));
+                      .setExportInterval(EXPORT_INTERVAL));
 
   private static final String ADMIN = "admin";
-  private static final String USER1 = "user1";
   private static final String TENANT_A = "tenantA";
   private static final String TENANT_B = "tenantB";
   private static final String PROCESS_ID = "service_tasks_v1";
@@ -60,17 +59,15 @@ public class UsageMetricsTest {
   @UserDefinition
   private static final TestUser ADMIN_USER = new TestUser(ADMIN, "password", List.of());
 
-  @UserDefinition
-  private static final TestUser USER1_USER = new TestUser(USER1, "password", List.of());
-
-  private static CamundaClient camundaClient;
+  private static OffsetDateTime exportedTime;
 
   private static void waitForUsageMetrics(
+      final CamundaClient camundaClient,
       final OffsetDateTime startTime,
       final OffsetDateTime endTime,
       final Consumer<UsageMetricsStatistics> fnRequirements) {
     Awaitility.await("should export metrics to secondary storage")
-        .atMost(Duration.ofSeconds(10))
+        .atMost(EXPORT_INTERVAL.multipliedBy(2))
         .ignoreExceptions() // Ignore exceptions and continue retrying
         .untilAsserted(
             () ->
@@ -79,46 +76,71 @@ public class UsageMetricsTest {
   }
 
   @BeforeAll
-  static void setup(@Authenticated(ADMIN) final CamundaClient adminClient) {
+  static void setup(@Authenticated(ADMIN) final CamundaClient adminClient)
+      throws InterruptedException {
     createTenant(adminClient, TENANT_A);
     createTenant(adminClient, TENANT_B);
     assignUserToTenant(adminClient, ADMIN, TENANT_A);
     assignUserToTenant(adminClient, ADMIN, TENANT_B);
-    assignUserToTenant(adminClient, USER1, TENANT_A);
 
+    // Create PI & wait for metrics to be exported
     deployResource(adminClient, "process/service_tasks_v1.bpmn", TENANT_A);
     startProcessInstance(adminClient, PROCESS_ID, TENANT_A);
+    waitForUsageMetrics(
+        adminClient,
+        NOW.minusDays(1),
+        NOW.plusDays(1),
+        res -> assertThat(res.getProcessInstances()).isEqualTo(1));
 
+    // Store first export time & wait 2 export intervals
+    exportedTime = OffsetDateTime.now();
+    Thread.sleep(2 * EXPORT_INTERVAL.toMillis());
+
+    // Create PI for TENANT_B
     deployResource(adminClient, "process/service_tasks_v1.bpmn", TENANT_B);
     startProcessInstance(adminClient, PROCESS_ID, TENANT_B);
 
+    // Deploy a decision model for TENANT_A and evaluate it 2 times
+    deployResource(adminClient, "decisions/decision_model.dmn", TENANT_A);
+    evaluateDecision(adminClient, "decision_1", Map.of("age", 20, "income", 25000), TENANT_A);
+    evaluateDecision(adminClient, "decision_1", Map.of("age", 40, "income", 3000), TENANT_A);
+
+    // Deploy another decision model for TENANT_B and evaluate it
+    deployResource(adminClient, "decisions/decision_model_1.dmn", TENANT_B);
+    evaluateDecision(adminClient, "test_qa", Map.of("input1", "B"), TENANT_B);
+
+    // Wait for rPI and eDI metrics to be exported
     waitForUsageMetrics(
+        adminClient,
         NOW.minusDays(1),
         NOW.plusDays(1),
-        res -> assertThat(res.getProcessInstances()).isEqualTo(2));
+        res -> {
+          assertThat(res.getProcessInstances()).isEqualTo(2);
+          assertThat(res.getDecisionInstances()).isEqualTo(3);
+        });
   }
 
   @Test
-  void shouldReturnMetrics() {
+  void shouldReturnMetrics(@Authenticated(ADMIN) final CamundaClient adminClient) {
     // given
     final var now = OffsetDateTime.now();
 
     // when
     final var actual =
-        camundaClient.newUsageMetricsRequest(now.minusDays(1), now.plusDays(1)).send().join();
+        adminClient.newUsageMetricsRequest(now.minusDays(1), now.plusDays(1)).send().join();
 
     // then
-    assertThat(actual).isEqualTo(new UsageMetricsStatisticsImpl(2, 0, 0, 2, null));
+    assertThat(actual).isEqualTo(new UsageMetricsStatisticsImpl(2, 3, 0, 2, Map.of()));
   }
 
   @Test
-  void shouldReturnMetricsWithTenants() {
+  void shouldReturnMetricsWithTenants(@Authenticated(ADMIN) final CamundaClient adminClient) {
     // given
     final var now = OffsetDateTime.now();
 
     // when
     final var actual =
-        camundaClient
+        adminClient
             .newUsageMetricsRequest(now.minusDays(1), now.plusDays(1))
             .withTenants(true)
             .send()
@@ -129,24 +151,44 @@ public class UsageMetricsTest {
         .isEqualTo(
             new UsageMetricsStatisticsImpl(
                 2,
-                0,
+                3,
                 0,
                 2,
                 Map.of(
                     TENANT_A,
-                    new UsageMetricsStatisticsItemImpl(1, 0, 0),
+                    new UsageMetricsStatisticsItemImpl(1, 2, 0),
                     TENANT_B,
-                    new UsageMetricsStatisticsItemImpl(1, 0, 0))));
+                    new UsageMetricsStatisticsItemImpl(1, 1, 0))));
   }
 
   @Test
-  void shouldReturnMetricsByTenantId() {
+  void shouldReturnMetricsWithinInterval(@Authenticated(ADMIN) final CamundaClient adminClient) {
     // given
     final var now = OffsetDateTime.now();
 
     // when
     final var actual =
-        camundaClient
+        adminClient
+            .newUsageMetricsRequest(now.minusDays(1), exportedTime)
+            .withTenants(true)
+            .send()
+            .join();
+
+    // then
+    assertThat(actual)
+        .isEqualTo(
+            new UsageMetricsStatisticsImpl(
+                1, 0, 0, 1, Map.of(TENANT_A, new UsageMetricsStatisticsItemImpl(1, 0, 0))));
+  }
+
+  @Test
+  void shouldReturnMetricsByTenantId(@Authenticated(ADMIN) final CamundaClient adminClient) {
+    // given
+    final var now = OffsetDateTime.now();
+
+    // when
+    final var actual =
+        adminClient
             .newUsageMetricsRequest(now.minusDays(1), now.plusDays(1))
             .tenantId(TENANT_B)
             .withTenants(true)
@@ -157,7 +199,7 @@ public class UsageMetricsTest {
     assertThat(actual)
         .isEqualTo(
             new UsageMetricsStatisticsImpl(
-                1, 0, 0, 1, Map.of(TENANT_B, new UsageMetricsStatisticsItemImpl(1, 0, 0))));
+                1, 1, 0, 1, Map.of(TENANT_B, new UsageMetricsStatisticsItemImpl(1, 1, 0))));
   }
 
   private static DeploymentEvent deployResource(
@@ -166,6 +208,20 @@ public class UsageMetricsTest {
         .newDeployResourceCommand()
         .addResourceFromClasspath(resourceName)
         .tenantId(tenantId)
+        .send()
+        .join();
+  }
+
+  private static EvaluateDecisionResponse evaluateDecision(
+      final CamundaClient camundaClient,
+      final String decisionId,
+      final Map<String, Object> variables,
+      final String tenantId) {
+    return camundaClient
+        .newEvaluateDecisionCommand()
+        .decisionId(decisionId)
+        .tenantId(tenantId)
+        .variables(variables)
         .send()
         .join();
   }

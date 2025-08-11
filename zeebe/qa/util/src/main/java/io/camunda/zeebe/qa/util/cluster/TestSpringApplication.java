@@ -8,7 +8,7 @@
 package io.camunda.zeebe.qa.util.cluster;
 
 import static io.camunda.application.commons.search.SearchEngineDatabaseConfiguration.SearchEngineSchemaManagerProperties.CREATE_SCHEMA_PROPERTY;
-import static io.camunda.application.commons.utils.DatabaseTypeUtils.PROPERTY_CAMUNDA_DATABASE_TYPE;
+import static io.camunda.spring.utils.DatabaseTypeUtils.PROPERTY_CAMUNDA_DATABASE_TYPE;
 
 import io.camunda.application.MainSupport;
 import io.camunda.application.Profile;
@@ -209,6 +209,13 @@ public abstract class TestSpringApplication<T extends TestSpringApplication<T>>
   public final T withWorkingDirectory(final Path directory) {
     return withBean(
         "workingDirectory", new WorkingDirectory(directory, false), WorkingDirectory.class);
+  }
+
+  /** Returns the broker's working directory if it is already set, or null otherwise. */
+  public final Path getWorkingDirectory() {
+    return Optional.ofNullable(bean(WorkingDirectory.class))
+        .map(WorkingDirectory::path)
+        .orElse(null);
   }
 
   public final Optional<AuthenticationMethod> apiAuthenticationMethod() {

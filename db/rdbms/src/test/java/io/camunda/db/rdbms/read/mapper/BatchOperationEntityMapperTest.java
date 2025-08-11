@@ -9,7 +9,9 @@ package io.camunda.db.rdbms.read.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.db.rdbms.sql.BatchOperationMapper.BatchOperationErrorDto;
 import io.camunda.db.rdbms.write.domain.BatchOperationDbModel;
+import io.camunda.search.entities.BatchOperationType;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -27,7 +29,7 @@ class BatchOperationEntityMapperTest {
         new BatchOperationDbModel.Builder()
             .batchOperationKey("id-1")
             .state(io.camunda.search.entities.BatchOperationEntity.BatchOperationState.ACTIVE)
-            .operationType("TYPE")
+            .operationType(BatchOperationType.CANCEL_PROCESS_INSTANCE)
             .startDate(OffsetDateTime.parse("2024-07-01T10:00:00Z"))
             .endDate(null)
             .operationsTotalCount(10)
@@ -41,7 +43,7 @@ class BatchOperationEntityMapperTest {
     assertThat(entity.batchOperationKey()).isEqualTo("id-1");
     assertThat(entity.state())
         .isEqualTo(io.camunda.search.entities.BatchOperationEntity.BatchOperationState.ACTIVE);
-    assertThat(entity.operationType()).isEqualTo("TYPE");
+    assertThat(entity.operationType()).isEqualTo(BatchOperationType.CANCEL_PROCESS_INSTANCE);
     assertThat(entity.startDate()).isEqualTo(OffsetDateTime.parse("2024-07-01T10:00:00Z"));
     assertThat(entity.endDate()).isNull();
     assertThat(entity.operationsTotalCount()).isEqualTo(10);
@@ -67,5 +69,23 @@ class BatchOperationEntityMapperTest {
     assertThat(errorEntity.partitionId()).isEqualTo(42);
     assertThat(errorEntity.type()).isEqualTo("SOME_ERROR");
     assertThat(errorEntity.message()).isEqualTo("trace");
+  }
+
+  @Test
+  void shouldTruncateBatchOperationErrorMessageWithLargeValue() {
+    final var truncatedMessage =
+        new BatchOperationErrorDto(1, "errorType", "errorMessage").truncateErrorMessage(10, null);
+
+    assertThat(truncatedMessage.message().length()).isEqualTo(10);
+    assertThat(truncatedMessage.message()).isEqualTo("errorMessa");
+  }
+
+  @Test
+  void shouldTruncateBatchOperationErrorMessageWithLargeBytes() {
+    final var truncatedMessage =
+        new BatchOperationErrorDto(1, "errorType", "ääääääääää").truncateErrorMessage(50, 5);
+
+    assertThat(truncatedMessage.message().length()).isEqualTo(2);
+    assertThat(truncatedMessage.message()).isEqualTo("ää");
   }
 }

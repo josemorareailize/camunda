@@ -11,6 +11,7 @@ import io.camunda.search.clients.transformers.ServiceTransformer;
 import io.camunda.search.entities.BatchOperationEntity;
 import io.camunda.search.entities.BatchOperationEntity.BatchOperationErrorEntity;
 import io.camunda.search.entities.BatchOperationEntity.BatchOperationState;
+import io.camunda.search.entities.BatchOperationType;
 import java.util.Collections;
 import org.apache.commons.lang3.StringUtils;
 
@@ -45,7 +46,7 @@ public class BatchOperationEntityTransformer
     return new BatchOperationEntity(
         source.getId(),
         BatchOperationState.valueOf(source.getState().name()),
-        source.getType().name(),
+        BatchOperationType.valueOf(source.getType().name()),
         source.getStartDate(),
         source.getEndDate(),
         source.getOperationsTotalCount(),
@@ -64,13 +65,26 @@ public class BatchOperationEntityTransformer
       final io.camunda.webapps.schema.entities.operation.BatchOperationEntity source) {
     return new BatchOperationEntity(
         source.getId(),
-        BatchOperationState.INCOMPLETED,
-        source.getType() != null ? source.getType().name() : null,
+        source.getState() != null
+            ? BatchOperationState.valueOf(source.getState().name())
+            : interpolateLegacyState(source),
+        source.getType() != null ? BatchOperationType.valueOf(source.getType().name()) : null,
         source.getStartDate(),
         source.getEndDate(),
         source.getOperationsTotalCount(),
         0,
         source.getOperationsFinishedCount(),
         Collections.emptyList());
+  }
+
+  private BatchOperationState interpolateLegacyState(
+      final io.camunda.webapps.schema.entities.operation.BatchOperationEntity entity) {
+    if (entity.getEndDate() != null) {
+      return BatchOperationState.COMPLETED;
+    } else if (entity.getOperationsFinishedCount() == 0) {
+      return BatchOperationState.CREATED;
+    } else {
+      return BatchOperationState.ACTIVE;
+    }
   }
 }

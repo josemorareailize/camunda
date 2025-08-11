@@ -8,7 +8,6 @@
 package io.camunda.zeebe.engine.processing.batchoperation;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.search.clients.SearchClientsProxy;
@@ -27,6 +26,7 @@ import io.camunda.zeebe.protocol.impl.record.value.batchoperation.BatchOperation
 import io.camunda.zeebe.protocol.impl.record.value.batchoperation.BatchOperationProcessInstanceModificationPlan;
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceMigrationMappingInstruction;
 import io.camunda.zeebe.protocol.record.value.AuthorizationOwnerType;
+import io.camunda.zeebe.protocol.record.value.AuthorizationResourceMatcher;
 import io.camunda.zeebe.protocol.record.value.AuthorizationResourceType;
 import io.camunda.zeebe.protocol.record.value.BatchOperationType;
 import io.camunda.zeebe.protocol.record.value.PermissionType;
@@ -53,6 +53,8 @@ abstract class AbstractBatchOperationTest {
           UUID.randomUUID().toString(),
           UUID.randomUUID().toString());
 
+  protected static final int DEFAULT_QUERY_PAGE_SIZE = 10000;
+
   @Rule
   public final RecordingExporterTestWatcher recordingExporterTestWatcher =
       new RecordingExporterTestWatcher();
@@ -71,6 +73,7 @@ abstract class AbstractBatchOperationTest {
                   cfg.getInitialization()
                       .getDefaultRoles()
                       .put("admin", Map.of("users", List.of(DEFAULT_USER.getUsername()))))
+          .withEngineConfig(cfg -> cfg.setBatchOperationQueryPageSize(DEFAULT_QUERY_PAGE_SIZE))
           .withSearchClientsProxy(searchClientsProxy);
 
   @Before
@@ -165,7 +168,7 @@ abstract class AbstractBatchOperationTest {
         .batchOperation()
         .newCreation(BatchOperationType.CANCEL_PROCESS_INSTANCE)
         .withFilter(filterBuffer)
-        .waitForStarted()
+        .waitForInitialized()
         .create(DEFAULT_USER.getUsername())
         .getValue()
         .getBatchOperationKey();
@@ -187,7 +190,10 @@ abstract class AbstractBatchOperationTest {
         piAndIncidentKeys.values().stream().flatMap(Set::stream).collect(Collectors.toSet());
     final var incidentResult =
         new SearchQueryResult.Builder<IncidentEntity>()
-            .items(incidentKeys.stream().map(this::mockIncidentEntity).collect(Collectors.toList()))
+            .items(
+                incidentKeys.stream()
+                    .map(k -> fakeIncidentEntity(k, k))
+                    .collect(Collectors.toList()))
             .total(incidentKeys.size())
             .build();
     when(searchClientsProxy.searchIncidents(Mockito.any(IncidentQuery.class)))
@@ -278,10 +284,22 @@ abstract class AbstractBatchOperationTest {
         null);
   }
 
-  protected IncidentEntity mockIncidentEntity(final long incidentKey) {
-    final var entity = mock(IncidentEntity.class);
-    when(entity.incidentKey()).thenReturn(incidentKey);
-    return entity;
+  protected IncidentEntity fakeIncidentEntity(
+      final long incidentKey, final long processInstanceKey) {
+    return new IncidentEntity(
+        incidentKey,
+        -1L, // processDefinitionKey
+        null, // processDefinitionId
+        processInstanceKey, // processInstanceKey
+        IncidentEntity.ErrorType.UNSPECIFIED,
+        "Fake incident message",
+        "flowNodeId",
+        -1L, // flowNodeInstanceKey
+        null, // creationTime
+        IncidentEntity.IncidentState.ACTIVE,
+        -1L, // jobKey
+        null // tenantId
+        );
   }
 
   protected UserRecordValue createUser() {
@@ -304,6 +322,7 @@ abstract class AbstractBatchOperationTest {
         .withOwnerId(user.getUsername())
         .withOwnerType(AuthorizationOwnerType.USER)
         .withResourceType(AuthorizationResourceType.BATCH)
+        .withResourceMatcher(AuthorizationResourceMatcher.ANY)
         .withResourceId("*")
         .create(DEFAULT_USER.getUsername());
   }
@@ -317,6 +336,7 @@ abstract class AbstractBatchOperationTest {
         .withOwnerId(user.getUsername())
         .withOwnerType(AuthorizationOwnerType.USER)
         .withResourceType(AuthorizationResourceType.PROCESS_DEFINITION)
+        .withResourceMatcher(AuthorizationResourceMatcher.ANY)
         .withResourceId("*")
         .create(DEFAULT_USER.getUsername());
   }

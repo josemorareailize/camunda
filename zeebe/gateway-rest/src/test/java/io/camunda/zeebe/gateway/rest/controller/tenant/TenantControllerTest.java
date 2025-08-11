@@ -20,8 +20,8 @@ import io.camunda.service.GroupServices;
 import io.camunda.service.MappingRuleServices;
 import io.camunda.service.RoleServices;
 import io.camunda.service.TenantServices;
-import io.camunda.service.TenantServices.TenantDTO;
 import io.camunda.service.TenantServices.TenantMemberRequest;
+import io.camunda.service.TenantServices.TenantRequest;
 import io.camunda.service.UserServices;
 import io.camunda.service.exception.ErrorMapper;
 import io.camunda.zeebe.broker.client.api.dto.BrokerRejection;
@@ -81,11 +81,10 @@ public class TenantControllerTest {
       // given
       final var tenantName = "Test Tenant";
       final var tenantDescription = "Test description";
-      when(tenantServices.createTenant(new TenantDTO(null, id, tenantName, tenantDescription)))
+      when(tenantServices.createTenant(new TenantRequest(null, id, tenantName, tenantDescription)))
           .thenReturn(
               CompletableFuture.completedFuture(
                   new TenantRecord()
-                      .setTenantKey(100L)
                       .setName(tenantName)
                       .setDescription(tenantDescription)
                       .setTenantId(id)));
@@ -107,7 +106,7 @@ public class TenantControllerTest {
 
       // then
       verify(tenantServices, times(1))
-          .createTenant(new TenantDTO(null, id, tenantName, tenantDescription));
+          .createTenant(new TenantRequest(null, id, tenantName, tenantDescription));
     }
 
     @Test
@@ -116,13 +115,11 @@ public class TenantControllerTest {
       final var tenantName = "Test Tenant";
       final var tenantId = "tenantId";
       final var tenantDescription = "Test description";
-      final var tenantKey = 100L;
       when(tenantServices.createTenant(
-              new TenantDTO(null, tenantId, tenantName, tenantDescription)))
+              new TenantRequest(null, tenantId, tenantName, tenantDescription)))
           .thenReturn(
               CompletableFuture.completedFuture(
                   new TenantRecord()
-                      .setTenantKey(tenantKey)
                       .setName(tenantName)
                       .setDescription(tenantDescription)
                       .setTenantId(tenantId)));
@@ -145,18 +142,17 @@ public class TenantControllerTest {
           .json(
               """
             {
-              "tenantKey": "%d",
               "tenantId": "%s",
               "name": "%s",
               "description": "%s"
             }
             """
-                  .formatted(tenantKey, tenantId, tenantName, tenantDescription),
+                  .formatted(tenantId, tenantName, tenantDescription),
               JsonCompareMode.STRICT);
 
       // then
       verify(tenantServices, times(1))
-          .createTenant(new TenantDTO(null, tenantId, tenantName, tenantDescription));
+          .createTenant(new TenantRequest(null, tenantId, tenantName, tenantDescription));
     }
 
     @Test
@@ -266,18 +262,16 @@ public class TenantControllerTest {
     @Test
     void updateTenantShouldReturnUpdatedResponse() {
       // given
-      final var tenantKey = 100L;
       final var tenantName = "Updated Tenant Name";
       final var tenantId = "tenant-test-id";
       final var tenantDescription = "Updated description";
       when(tenantServices.updateTenant(
-              new TenantDTO(null, tenantId, tenantName, tenantDescription)))
+              new TenantRequest(null, tenantId, tenantName, tenantDescription)))
           .thenReturn(
               CompletableFuture.completedFuture(
                   new TenantRecord()
                       .setName(tenantName)
                       .setDescription(tenantDescription)
-                      .setTenantKey(tenantKey)
                       .setTenantId(tenantId)));
 
       // when
@@ -294,18 +288,17 @@ public class TenantControllerTest {
           .json(
               """
             {
-              "tenantKey": "%d",
               "tenantId": "%s",
               "name": "%s",
               "description": "%s"
             }
             """
-                  .formatted(tenantKey, tenantId, tenantName, tenantDescription),
+                  .formatted(tenantId, tenantName, tenantDescription),
               JsonCompareMode.STRICT);
 
       // then
       verify(tenantServices, times(1))
-          .updateTenant(new TenantDTO(null, tenantId, tenantName, tenantDescription));
+          .updateTenant(new TenantRequest(null, tenantId, tenantName, tenantDescription));
     }
 
     @Test
@@ -380,18 +373,14 @@ public class TenantControllerTest {
       final var tenantId = "tenant-id";
       final var tenantName = "My tenant";
       final var tenantDescription = "My tenant description";
-      final var tenantKey = 100L;
       final var path = "%s/%s".formatted(TENANT_BASE_URL, tenantId);
       when(tenantServices.updateTenant(
-              new TenantDTO(null, tenantId, tenantName, tenantDescription)))
+              new TenantRequest(null, tenantId, tenantName, tenantDescription)))
           .thenReturn(
               CompletableFuture.failedFuture(
                   ErrorMapper.mapBrokerRejection(
                       new BrokerRejection(
-                          TenantIntent.UPDATE,
-                          tenantKey,
-                          RejectionType.NOT_FOUND,
-                          "Tenant not found"))));
+                          TenantIntent.UPDATE, -1L, RejectionType.NOT_FOUND, "Tenant not found"))));
 
       // when / then
       webClient
@@ -405,7 +394,7 @@ public class TenantControllerTest {
           .isNotFound();
 
       verify(tenantServices, times(1))
-          .updateTenant(new TenantDTO(null, tenantId, tenantName, tenantDescription));
+          .updateTenant(new TenantRequest(null, tenantId, tenantName, tenantDescription));
     }
 
     @Test

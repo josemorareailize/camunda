@@ -13,6 +13,7 @@ import static org.awaitility.Awaitility.await;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.CreateProcessInstanceCommandStep1;
+import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.response.DeploymentEvent;
 import io.camunda.client.api.response.Process;
 import io.camunda.client.api.response.ProcessInstanceEvent;
@@ -24,6 +25,7 @@ import io.camunda.client.api.search.filter.ElementInstanceFilter;
 import io.camunda.client.api.search.filter.IncidentFilter;
 import io.camunda.client.api.search.filter.ProcessDefinitionFilter;
 import io.camunda.client.api.search.filter.ProcessInstanceFilter;
+import io.camunda.client.api.search.response.ProcessInstance;
 import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.time.Duration;
@@ -147,13 +149,7 @@ public final class TestHelper {
       final String tenantId,
       final String tenantName,
       final String... usernames) {
-    client
-        .newCreateTenantCommand()
-        .tenantId(tenantId)
-        .name(tenantName)
-        .send()
-        .join()
-        .getTenantKey();
+    client.newCreateTenantCommand().tenantId(tenantId).name(tenantName).send().join();
     for (final var username : usernames) {
       client.newAssignUserToTenantCommand().username(username).tenantId(tenantId).send().join();
     }
@@ -341,6 +337,41 @@ public final class TestHelper {
   }
 
   /**
+   * Waits for process instances to start which are having a process variable {@link *
+   * #VAR_TEST_SCOPE_ID}.
+   *
+   * @param camundaClient CamundaClient
+   * @param processInstanceKey the key of the process instance to check
+   * @param variableName the name of the variable to check
+   * @param variableValue the value of the variable to check
+   */
+  public static void waitUntilProcessInstanceHasVariable(
+      final CamundaClient camundaClient,
+      final Long processInstanceKey,
+      final String variableName,
+      final String variableValue) {
+    final Map<String, Object> variables = new HashMap<>();
+    variables.put(variableName, variableValue);
+
+    Awaitility.await("should wait until variables exist")
+        .atMost(TIMEOUT_DATA_AVAILABILITY)
+        .ignoreExceptions() // Ignore exceptions and continue retrying
+        .untilAsserted(
+            () -> {
+              final var result =
+                  camundaClient
+                      .newProcessInstanceSearchRequest()
+                      .filter(
+                          f ->
+                              f.processInstanceKey(processInstanceKey)
+                                  .variables(Map.of(variableName, variableValue)))
+                      .send()
+                      .join();
+              assertThat(result.page().totalItems()).isEqualTo(1);
+            });
+  }
+
+  /**
    * Waits for user tasks to be created which are having a process variable {@link
    * #VAR_TEST_SCOPE_ID}.
    *
@@ -385,10 +416,12 @@ public final class TestHelper {
       final CamundaClient camundaClient, final String batchOperationKey, final int expectedItems) {
     Awaitility.await("should start batch operation with correct total count")
         .atMost(TIMEOUT_DATA_AVAILABILITY)
-        .ignoreExceptions() // Ignore exceptions and continue retrying
+        .ignoreExceptionsMatching(
+            e ->
+                e instanceof ProblemException
+                    && ((ProblemException) e).code() == 404) // Ignore 404 errors
         .untilAsserted(
             () -> {
-              // and
               final var batch =
                   camundaClient.newBatchOperationGetRequest(batchOperationKey).send().join();
               assertThat(batch).isNotNull();
@@ -464,6 +497,21 @@ public final class TestHelper {
               final var result =
                   camundaClient.newProcessInstanceGetRequest(processInstanceKey).send().join();
               assertThat(result.getState()).isEqualTo(ProcessInstanceState.TERMINATED);
+            });
+  }
+
+  public static void waitForProcessInstance(
+      final CamundaClient client,
+      final Consumer<ProcessInstanceFilter> filter,
+      final Consumer<List<ProcessInstance>> asserter) {
+    await()
+        .atMost(TIMEOUT_DATA_AVAILABILITY)
+        .ignoreExceptions()
+        .untilAsserted(
+            () -> {
+              final var result =
+                  client.newProcessInstanceSearchRequest().filter(filter).send().join().items();
+              asserter.accept(result);
             });
   }
 
@@ -594,6 +642,18 @@ public final class TestHelper {
                           .items()
                           .size())
                   .isEqualTo(expectedDecisionRequirements);
+            });
+  }
+
+  public static void waitForDecisionToBeEvaluated(
+      final CamundaClient camundaClient, final int expectedDecisionInstances) {
+    Awaitility.await("should deploy decision definitions and wait for import")
+        .atMost(Duration.ofSeconds(15))
+        .ignoreExceptions() // Ignore exceptions and continue retrying
+        .untilAsserted(
+            () -> {
+              final var result = camundaClient.newDecisionInstanceSearchRequest().send().join();
+              assertThat(result.items()).hasSize(expectedDecisionInstances);
             });
   }
 

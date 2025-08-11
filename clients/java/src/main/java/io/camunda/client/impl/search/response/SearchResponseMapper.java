@@ -51,7 +51,6 @@ import io.camunda.client.api.search.response.UserTask;
 import io.camunda.client.api.search.response.Variable;
 import io.camunda.client.impl.search.response.BatchOperationItemsImpl.BatchOperationItemImpl;
 import io.camunda.client.impl.util.EnumUtil;
-import io.camunda.client.impl.util.ParseUtil;
 import io.camunda.client.protocol.rest.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -285,11 +284,7 @@ public final class SearchResponseMapper {
   }
 
   public static User toUserResponse(final UserResult response) {
-    return new UserImpl(
-        ParseUtil.parseLongOrNull(response.getUserKey()),
-        response.getUsername(),
-        response.getName(),
-        response.getEmail());
+    return new UserImpl(response.getUsername(), response.getName(), response.getEmail());
   }
 
   public static SearchResponse<GroupUser> toGroupUsersResponse(
@@ -362,7 +357,7 @@ public final class SearchResponseMapper {
     return new SearchResponseImpl<>(instances, page);
   }
 
-  public static SearchResponse<MappingRule> toMappingsResponse(
+  public static SearchResponse<MappingRule> toMappingRulesResponse(
       final MappingRuleSearchQueryResult response) {
     final SearchResponsePage page = toSearchResponsePage(response.getPage());
     final List<MappingRule> instances =

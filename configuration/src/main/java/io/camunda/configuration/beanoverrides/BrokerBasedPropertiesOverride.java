@@ -11,6 +11,7 @@ import io.camunda.configuration.UnifiedConfiguration;
 import io.camunda.configuration.beans.BrokerBasedProperties;
 import io.camunda.configuration.beans.LegacyBrokerBasedProperties;
 import io.camunda.zeebe.broker.system.configuration.ConfigManagerCfg;
+import io.camunda.zeebe.broker.system.configuration.ThreadsCfg;
 import io.camunda.zeebe.dynamic.config.gossip.ClusterConfigurationGossiperConfig;
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -44,6 +45,13 @@ public class BrokerBasedPropertiesOverride {
 
     // from camunda.cluster.* sections
     populateFromCluster(override);
+
+    // from camunda.system.* sections in relation
+    // with zeebe.broker.*
+    populateFromSystem(override);
+
+    populateFromPrimaryStorage(override);
+
     // TODO: Populate the bean from rest of camunda.* sections
     // populateFromData(override);
 
@@ -51,7 +59,15 @@ public class BrokerBasedPropertiesOverride {
   }
 
   private void populateFromCluster(final BrokerBasedProperties override) {
+    final var cluster = unifiedConfiguration.getCamunda().getCluster();
+
+    override.getCluster().setNodeId(cluster.getNodeId());
+    override.getCluster().setPartitionsCount(cluster.getPartitionCount());
+    override.getCluster().setReplicationFactor(cluster.getReplicationFactor());
+    override.getCluster().setClusterSize(cluster.getSize());
+
     populateFromClusterMetadata(override);
+    populateFromClusterNetwork(override);
     // Rest of camunda.cluster.* sections
   }
 
@@ -63,5 +79,42 @@ public class BrokerBasedPropertiesOverride {
     final var configManagerGossipConfig =
         new ClusterConfigurationGossiperConfig(syncDelay, syncTimeout, gossipFanout);
     override.getCluster().setConfigManager(new ConfigManagerCfg(configManagerGossipConfig));
+  }
+
+  private void populateFromClusterNetwork(final BrokerBasedProperties override) {
+    final var network =
+        unifiedConfiguration.getCamunda().getCluster().getNetwork().withBrokerNetworkProperties();
+
+    override.getNetwork().setHost(network.getHost());
+  }
+
+  private void populateFromSystem(final BrokerBasedProperties override) {
+    final var system = unifiedConfiguration.getCamunda().getSystem();
+
+    final var threadsCfg = new ThreadsCfg();
+    threadsCfg.setCpuThreadCount(system.getCpuThreadCount());
+    threadsCfg.setIoThreadCount(system.getIoThreadCount());
+    override.setThreads(threadsCfg);
+
+    final var enableVersionCheck =
+        unifiedConfiguration.getCamunda().getSystem().getUpgrade().getEnableVersionCheck();
+    override.getExperimental().setVersionCheckRestrictionEnabled(enableVersionCheck);
+  }
+
+  private void populateFromPrimaryStorage(final BrokerBasedProperties override) {
+    final var primaryStorage = unifiedConfiguration.getCamunda().getData().getPrimaryStorage();
+    final var data = override.getData();
+    data.setDirectory(primaryStorage.getDirectory());
+    data.setRuntimeDirectory(primaryStorage.getRuntimeDirectory());
+    data.setLogIndexDensity(primaryStorage.getLogStream().getLogIndexDensity());
+    data.setLogSegmentSize(primaryStorage.getLogStream().getLogSegmentSize());
+    final var brokerDiskConfig = data.getDisk();
+    final var unifiedDiskConfig = primaryStorage.getDisk();
+    brokerDiskConfig.getFreeSpace().setProcessing(unifiedDiskConfig.getFreeSpace().getProcessing());
+    brokerDiskConfig
+        .getFreeSpace()
+        .setReplication(unifiedDiskConfig.getFreeSpace().getReplication());
+    brokerDiskConfig.setEnableMonitoring(unifiedDiskConfig.isMonitoringEnabled());
+    brokerDiskConfig.setMonitoringInterval(unifiedDiskConfig.getMonitoringInterval());
   }
 }

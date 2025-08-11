@@ -7,9 +7,10 @@
  */
 package io.camunda.db.rdbms.write.service;
 
+import io.camunda.db.rdbms.config.VendorDatabaseProperties;
 import io.camunda.db.rdbms.sql.DecisionInstanceMapper;
-import io.camunda.db.rdbms.sql.HistoryCleanupMapper;
 import io.camunda.db.rdbms.sql.HistoryCleanupMapper.CleanupHistoryDto;
+import io.camunda.db.rdbms.sql.ProcessBasedHistoryCleanupMapper;
 import io.camunda.db.rdbms.write.domain.DecisionInstanceDbModel;
 import io.camunda.db.rdbms.write.queue.ContextType;
 import io.camunda.db.rdbms.write.queue.ExecutionQueue;
@@ -21,11 +22,15 @@ public class DecisionInstanceWriter {
 
   private final DecisionInstanceMapper mapper;
   private final ExecutionQueue executionQueue;
+  private final VendorDatabaseProperties vendorDatabaseProperties;
 
   public DecisionInstanceWriter(
-      final DecisionInstanceMapper mapper, final ExecutionQueue executionQueue) {
+      final DecisionInstanceMapper mapper,
+      final ExecutionQueue executionQueue,
+      final VendorDatabaseProperties vendorDatabaseProperties) {
     this.mapper = mapper;
     this.executionQueue = executionQueue;
+    this.vendorDatabaseProperties = vendorDatabaseProperties;
   }
 
   public void create(final DecisionInstanceDbModel decisionInstance) {
@@ -35,7 +40,9 @@ public class DecisionInstanceWriter {
             WriteStatementType.INSERT,
             decisionInstance.decisionInstanceKey(),
             "io.camunda.db.rdbms.sql.DecisionInstanceMapper.insert",
-            decisionInstance));
+            decisionInstance.truncateErrorMessage(
+                vendorDatabaseProperties.errorMessageSize(),
+                vendorDatabaseProperties.charColumnMaxBytes())));
     if (decisionInstance.evaluatedInputs() != null
         && !decisionInstance.evaluatedInputs().isEmpty()) {
       executionQueue.executeInQueue(
@@ -44,7 +51,9 @@ public class DecisionInstanceWriter {
               WriteStatementType.INSERT,
               decisionInstance.decisionInstanceKey(),
               "io.camunda.db.rdbms.sql.DecisionInstanceMapper.insertInput",
-              decisionInstance));
+              decisionInstance.truncateErrorMessage(
+                  vendorDatabaseProperties.errorMessageSize(),
+                  vendorDatabaseProperties.charColumnMaxBytes())));
     }
     if (decisionInstance.evaluatedOutputs() != null
         && !decisionInstance.evaluatedOutputs().isEmpty()) {
@@ -54,7 +63,9 @@ public class DecisionInstanceWriter {
               WriteStatementType.INSERT,
               decisionInstance.decisionInstanceKey(),
               "io.camunda.db.rdbms.sql.DecisionInstanceMapper.insertOutput",
-              decisionInstance));
+              decisionInstance.truncateErrorMessage(
+                  vendorDatabaseProperties.errorMessageSize(),
+                  vendorDatabaseProperties.charColumnMaxBytes())));
     }
   }
 
@@ -66,7 +77,7 @@ public class DecisionInstanceWriter {
             WriteStatementType.UPDATE,
             processInstanceKey,
             "io.camunda.db.rdbms.sql.DecisionInstanceMapper.updateHistoryCleanupDate",
-            new HistoryCleanupMapper.UpdateHistoryCleanupDateDto.Builder()
+            new ProcessBasedHistoryCleanupMapper.UpdateHistoryCleanupDateDto.Builder()
                 .processInstanceKey(processInstanceKey)
                 .historyCleanupDate(historyCleanupDate)
                 .build()));

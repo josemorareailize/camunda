@@ -47,6 +47,7 @@ jobs:
           push: true
           distball: ${{ steps.build-zeebe.outputs.distball }}
       - name: Run Tasklist backup restore Tests
+        shell: bash
         run: ./mvnw -B -pl tasklist/qa/backup-restore-tests -DskipChecks -DtasklistDatabase=${{ inputs.database }} -DskipTests=false verify | tee "${BUILD_OUTPUT_FILE_PATH}"
       - name: Upload Test Report
         if: failure()
@@ -69,7 +70,7 @@ jobs:
           job_name: "tasklist-ci/backup-restore"
           build_status: ${{ job.status }}
           user_reason: ${{ (steps.analyze-test-run.outputs.flakyTests != '') && 'flaky-tests' || '' }}
-          user_description: ${{ steps.analyze-test-run.outputs.flakyTests }}
+          user_description: "team-data-layer"
           detailed_junit_flaky_tests: true
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
           secret_vault_address: ${{ secrets.VAULT_ADDR }}

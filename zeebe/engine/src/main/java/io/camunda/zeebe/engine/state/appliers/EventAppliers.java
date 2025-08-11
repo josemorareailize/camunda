@@ -131,7 +131,7 @@ public final class EventAppliers implements EventApplier {
     registerEscalationAppliers();
     registerResourceDeletionAppliers();
 
-    registerAdHocSubProcessActivityActivationAppliers();
+    registerAdHocSubProcessInstructionAppliers(state);
 
     registerUserAppliers(state);
     registerAuthorizationAppliers(state);
@@ -140,7 +140,7 @@ public final class EventAppliers implements EventApplier {
     registerGroupAppliers(state);
     registerScalingAppliers(state);
     registerTenantAppliers(state);
-    registerMappingAppliers(state);
+    registerMappingRuleAppliers(state);
     registerBatchOperationAppliers(state);
     registerIdentitySetupAppliers();
     registerAsyncRequestAppliers(state);
@@ -264,16 +264,11 @@ public final class EventAppliers implements EventApplier {
     register(
         ProcessInstanceIntent.ELEMENT_MIGRATED,
         1,
-        new ProcessInstanceElementMigratedV1Applier(elementInstanceState, processState));
+        new ProcessInstanceElementMigratedV1Applier(elementInstanceState));
     register(
         ProcessInstanceIntent.ELEMENT_MIGRATED,
         2,
         new ProcessInstanceElementMigratedV2Applier(
-            elementInstanceState, processState, state.getMessageState()));
-    register(
-        ProcessInstanceIntent.ELEMENT_MIGRATED,
-        3,
-        new ProcessInstanceElementMigratedV3Applier(
             elementInstanceState, processState, state.getMessageState()));
     register(
         ProcessInstanceIntent.ANCESTOR_MIGRATED,
@@ -584,8 +579,11 @@ public final class EventAppliers implements EventApplier {
     register(ResourceDeletionIntent.DELETED, NOOP_EVENT_APPLIER);
   }
 
-  private void registerAdHocSubProcessActivityActivationAppliers() {
+  private void registerAdHocSubProcessInstructionAppliers(final MutableProcessingState state) {
     register(AdHocSubProcessInstructionIntent.ACTIVATED, NOOP_EVENT_APPLIER);
+    register(
+        AdHocSubProcessInstructionIntent.COMPLETED,
+        new AdHocSubProcessInstructionCompletedApplier(state.getElementInstanceState()));
   }
 
   private void registerClockAppliers(final MutableProcessingState state) {
@@ -624,7 +622,7 @@ public final class EventAppliers implements EventApplier {
     register(TenantIntent.DELETED, new TenantDeletedApplier(state.getTenantState()));
   }
 
-  private void registerMappingAppliers(final MutableProcessingState state) {
+  private void registerMappingRuleAppliers(final MutableProcessingState state) {
     register(MappingRuleIntent.CREATED, new MappingRuleCreatedApplier(state.getMappingRuleState()));
     register(MappingRuleIntent.DELETED, new MappingRuleDeletedApplier(state.getMappingRuleState()));
     register(MappingRuleIntent.UPDATED, new MappingRuleUpdatedApplier(state.getMappingRuleState()));
@@ -635,8 +633,11 @@ public final class EventAppliers implements EventApplier {
         BatchOperationIntent.CREATED,
         new BatchOperationCreatedApplier(state.getBatchOperationState()));
     register(
-        BatchOperationIntent.STARTED,
-        new BatchOperationStartedApplier(state.getBatchOperationState()));
+        BatchOperationIntent.INITIALIZING,
+        new BatchOperationInitializingApplier(state.getBatchOperationState()));
+    register(
+        BatchOperationIntent.INITIALIZED,
+        new BatchOperationInitializedApplier(state.getBatchOperationState()));
     register(
         BatchOperationIntent.FAILED,
         new BatchOperationFailedApplier(state.getBatchOperationState()));
@@ -725,5 +726,9 @@ public final class EventAppliers implements EventApplier {
     }
 
     applierForVersion.applyState(key, value);
+  }
+
+  public Map<Intent, Map<Integer, TypedEventApplier>> getRegisteredAppliers() {
+    return Map.copyOf(mapping);
   }
 }

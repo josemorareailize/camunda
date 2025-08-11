@@ -11,6 +11,13 @@ import io.atomix.cluster.MemberId;
 import io.camunda.application.Profile;
 import io.camunda.application.commons.CommonsModuleConfiguration;
 import io.camunda.application.commons.security.CamundaSecurityConfiguration.CamundaSecurityProperties;
+import io.camunda.configuration.UnifiedConfiguration;
+import io.camunda.configuration.UnifiedConfigurationHelper;
+import io.camunda.configuration.beanoverrides.ActorClockControlledPropertiesOverride;
+import io.camunda.configuration.beanoverrides.BrokerBasedPropertiesOverride;
+import io.camunda.configuration.beanoverrides.IdleStrategyPropertiesOverride;
+import io.camunda.configuration.beanoverrides.OperatePropertiesOverride;
+import io.camunda.configuration.beanoverrides.TasklistPropertiesOverride;
 import io.camunda.configuration.beans.GatewayBasedProperties;
 import io.camunda.zeebe.gateway.GatewayModuleConfiguration;
 import io.camunda.zeebe.gateway.impl.configuration.GatewayCfg;
@@ -24,7 +31,16 @@ public final class TestStandaloneGateway extends TestSpringApplication<TestStand
   private final CamundaSecurityProperties securityConfig;
 
   public TestStandaloneGateway() {
-    super(GatewayModuleConfiguration.class, CommonsModuleConfiguration.class);
+    super(
+        GatewayModuleConfiguration.class,
+        CommonsModuleConfiguration.class,
+        UnifiedConfiguration.class,
+        UnifiedConfigurationHelper.class,
+        TasklistPropertiesOverride.class,
+        OperatePropertiesOverride.class,
+        BrokerBasedPropertiesOverride.class,
+        ActorClockControlledPropertiesOverride.class,
+        IdleStrategyPropertiesOverride.class);
     config = new GatewayBasedProperties();
 
     config.getNetwork().setHost("0.0.0.0");

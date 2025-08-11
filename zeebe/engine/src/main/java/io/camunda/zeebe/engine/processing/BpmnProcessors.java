@@ -10,6 +10,7 @@ package io.camunda.zeebe.engine.processing;
 import io.camunda.zeebe.engine.EngineConfiguration;
 import io.camunda.zeebe.engine.metrics.ProcessEngineMetrics;
 import io.camunda.zeebe.engine.processing.adhocsubprocess.AdHocSubProcessInstructionActivateProcessor;
+import io.camunda.zeebe.engine.processing.adhocsubprocess.AdHocSubProcessInstructionCompleteProcessor;
 import io.camunda.zeebe.engine.processing.bpmn.BpmnStreamProcessor;
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnBehaviors;
 import io.camunda.zeebe.engine.processing.distribution.CommandDistributionBehavior;
@@ -131,7 +132,7 @@ public final class BpmnProcessors {
         keyGenerator);
     addProcessInstanceBatchStreamProcessors(typedRecordProcessors, processingState, writers);
     addAdHocSubProcessActivityStreamProcessors(
-        typedRecordProcessors, processingState, writers, authCheckBehavior, keyGenerator);
+        typedRecordProcessors, processingState, writers, authCheckBehavior, bpmnBehaviors);
 
     return bpmnStreamProcessor;
   }
@@ -342,11 +343,15 @@ public final class BpmnProcessors {
       final MutableProcessingState processingState,
       final Writers writers,
       final AuthorizationCheckBehavior authCheckBehavior,
-      final KeyGenerator keyGenerator) {
+      final BpmnBehaviors bpmnBehaviors) {
     typedRecordProcessors.onCommand(
         ValueType.AD_HOC_SUB_PROCESS_INSTRUCTION,
         AdHocSubProcessInstructionIntent.ACTIVATE,
         new AdHocSubProcessInstructionActivateProcessor(
-            writers, processingState, authCheckBehavior, keyGenerator));
+            writers, processingState, authCheckBehavior, bpmnBehaviors));
+    typedRecordProcessors.onCommand(
+        ValueType.AD_HOC_SUB_PROCESS_INSTRUCTION,
+        AdHocSubProcessInstructionIntent.COMPLETE,
+        new AdHocSubProcessInstructionCompleteProcessor(writers, processingState, bpmnBehaviors));
   }
 }

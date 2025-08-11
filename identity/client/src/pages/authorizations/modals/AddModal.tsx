@@ -6,7 +6,8 @@
  * except in compliance with the Camunda License 1.0.
  */
 
-import { FC, useState } from "react";
+import { FC } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { Dropdown, CheckboxGroup, Checkbox } from "@carbon/react";
 import { useApiCall } from "src/utility/api";
 import useTranslate from "src/utility/localization";
@@ -16,7 +17,7 @@ import {
   Authorization,
   createAuthorization,
   OwnerType,
-  PermissionTypes,
+  PermissionType,
   ResourceType,
 } from "src/utility/api/authorizations";
 import { useNotifications } from "src/components/notifications";
@@ -31,45 +32,93 @@ type ResourcePermissionsType = {
 };
 
 const resourcePermissions: ResourcePermissionsType = {
-  APPLICATION: ["ACCESS"],
-  AUTHORIZATION: ["UPDATE", "CREATE", "READ", "DELETE"],
+  APPLICATION: [PermissionType.ACCESS],
+  AUTHORIZATION: [
+    PermissionType.CREATE,
+    PermissionType.DELETE,
+    PermissionType.READ,
+    PermissionType.UPDATE,
+  ],
   BATCH: [
-    "CREATE",
-    "CREATE_BATCH_OPERATION_CANCEL_PROCESS_INSTANCE",
-    "CREATE_BATCH_OPERATION_RESOLVE_INCIDENT",
-    "CREATE_BATCH_OPERATION_DELETE_DECISION_INSTANCE",
-    "CREATE_BATCH_OPERATION_DELETE_PROCESS_INSTANCE",
-    "CREATE_BATCH_OPERATION_MIGRATE_PROCESS_INSTANCE",
-    "CREATE_BATCH_OPERATION_MODIFY_PROCESS_INSTANCE",
-    "CREATE_BATCH_OPERATION_DELETE_PROCESS_DEFINITION",
-    "CREATE_BATCH_OPERATION_DELETE_DECISION_DEFINITION",
-    "READ",
-    "UPDATE",
+    PermissionType.CREATE,
+    PermissionType.CREATE_BATCH_OPERATION_CANCEL_PROCESS_INSTANCE,
+    PermissionType.CREATE_BATCH_OPERATION_DELETE_DECISION_DEFINITION,
+    PermissionType.CREATE_BATCH_OPERATION_DELETE_DECISION_INSTANCE,
+    PermissionType.CREATE_BATCH_OPERATION_DELETE_PROCESS_DEFINITION,
+    PermissionType.CREATE_BATCH_OPERATION_DELETE_PROCESS_INSTANCE,
+    PermissionType.CREATE_BATCH_OPERATION_MIGRATE_PROCESS_INSTANCE,
+    PermissionType.CREATE_BATCH_OPERATION_MODIFY_PROCESS_INSTANCE,
+    PermissionType.CREATE_BATCH_OPERATION_RESOLVE_INCIDENT,
+    PermissionType.READ,
+    PermissionType.UPDATE,
   ],
   DECISION_DEFINITION: [
-    "DELETE_DECISION_INSTANCE",
-    "CREATE_DECISION_INSTANCE",
-    "READ_DECISION_INSTANCE",
-    "READ_DECISION_DEFINITION",
+    PermissionType.CREATE_DECISION_INSTANCE,
+    PermissionType.DELETE_DECISION_INSTANCE,
+    PermissionType.READ_DECISION_DEFINITION,
+    PermissionType.READ_DECISION_INSTANCE,
   ],
-  DECISION_REQUIREMENTS_DEFINITION: ["UPDATE", "READ", "DELETE"],
-  RESOURCE: ["CREATE", "DELETE_DRD", "DELETE_PROCESS", "DELETE_FORM"],
-  GROUP: ["UPDATE", "CREATE", "READ", "DELETE"],
-  MAPPING_RULE: ["UPDATE", "CREATE", "READ", "DELETE"],
-  MESSAGE: ["CREATE", "READ"],
+  DECISION_REQUIREMENTS_DEFINITION: [
+    PermissionType.DELETE,
+    PermissionType.READ,
+    PermissionType.UPDATE,
+  ],
+  RESOURCE: [
+    PermissionType.CREATE,
+    PermissionType.DELETE_DRD,
+    PermissionType.DELETE_FORM,
+    PermissionType.DELETE_PROCESS,
+  ],
+  GROUP: [
+    PermissionType.CREATE,
+    PermissionType.DELETE,
+    PermissionType.READ,
+    PermissionType.UPDATE,
+  ],
+  MAPPING_RULE: [
+    PermissionType.CREATE,
+    PermissionType.DELETE,
+    PermissionType.READ,
+    PermissionType.UPDATE,
+  ],
+  MESSAGE: [PermissionType.CREATE, PermissionType.READ],
   PROCESS_DEFINITION: [
-    "CREATE_PROCESS_INSTANCE",
-    "DELETE_PROCESS_INSTANCE",
-    "UPDATE_USER_TASK",
-    "READ_PROCESS_INSTANCE",
-    "READ_USER_TASK",
-    "UPDATE_PROCESS_INSTANCE",
-    "READ_PROCESS_DEFINITION",
+    PermissionType.CREATE_PROCESS_INSTANCE,
+    PermissionType.DELETE_PROCESS_INSTANCE,
+    PermissionType.READ_PROCESS_DEFINITION,
+    PermissionType.READ_PROCESS_INSTANCE,
+    PermissionType.READ_USER_TASK,
+    PermissionType.UPDATE_PROCESS_INSTANCE,
+    PermissionType.UPDATE_USER_TASK,
   ],
-  ROLE: ["UPDATE", "CREATE", "READ", "DELETE"],
-  SYSTEM: ["UPDATE", "READ"],
-  TENANT: ["UPDATE", "CREATE", "READ", "DELETE"],
-  USER: ["UPDATE", "CREATE", "READ", "DELETE"],
+  ROLE: [
+    PermissionType.CREATE,
+    PermissionType.DELETE,
+    PermissionType.READ,
+    PermissionType.UPDATE,
+  ],
+  SYSTEM: [PermissionType.READ, PermissionType.UPDATE],
+  TENANT: [
+    PermissionType.CREATE,
+    PermissionType.DELETE,
+    PermissionType.READ,
+    PermissionType.UPDATE,
+  ],
+  USER: [
+    PermissionType.CREATE,
+    PermissionType.DELETE,
+    PermissionType.READ,
+    PermissionType.UPDATE,
+  ],
+  DOCUMENT: [PermissionType.CREATE, PermissionType.READ, PermissionType.DELETE],
+};
+
+type FormData = {
+  ownerType: OwnerType;
+  ownerId: string;
+  resourceId: string;
+  resourceType: ResourceType;
+  permissionTypes: Authorization["permissionTypes"];
 };
 
 const AddModal: FC<UseEntityModalProps<ResourceType>> = ({
@@ -83,12 +132,6 @@ const AddModal: FC<UseEntityModalProps<ResourceType>> = ({
   const [apiCall, { loading, error }] = useApiCall(createAuthorization, {
     suppressErrorNotification: true,
   });
-  const [ownerType, setOwnerType] = useState<OwnerType>(OwnerType.USER);
-  const [ownerId, setOwnerId] = useState("");
-  const [resourceId, setResourceId] = useState("");
-  const [permissionTypes, setPermissionTypes] = useState<
-    Authorization["permissionTypes"]
-  >([]);
 
   const ownerTypeItems = Object.values(OwnerType);
   const allResourceTypes = Object.values(ResourceType);
@@ -96,24 +139,27 @@ const AddModal: FC<UseEntityModalProps<ResourceType>> = ({
     ? allResourceTypes
     : allResourceTypes.filter((type) => type !== ResourceType.TENANT);
 
-  const [resourceType, setResourceType] =
-    useState<ResourceType>(defaultResourceType);
+  const { control, handleSubmit, watch, setValue } = useForm<FormData>({
+    defaultValues: {
+      ownerType: OwnerType.USER,
+      ownerId: "",
+      resourceId: "",
+      resourceType: defaultResourceType,
+      permissionTypes: [],
+    },
+    mode: "all",
+  });
 
-  const handleChangeCheckbox = (checked: boolean, id: PermissionTypes) => {
-    if (checked) {
-      setPermissionTypes([...permissionTypes, id]);
-    } else {
-      setPermissionTypes(permissionTypes.filter((p) => p !== id));
-    }
-  };
+  const watchedOwnerType = watch("ownerType");
+  const watchedResourceType = watch("resourceType");
 
-  const handleSubmit = async () => {
+  const onSubmit = async (data: FormData) => {
     const { success } = await apiCall({
-      ownerType,
-      ownerId,
-      resourceId,
-      resourceType,
-      permissionTypes,
+      ownerType: data.ownerType,
+      ownerId: data.ownerId,
+      resourceId: data.resourceId,
+      resourceType: data.resourceType,
+      permissionTypes: data.permissionTypes,
     });
 
     if (success) {
@@ -121,7 +167,7 @@ const AddModal: FC<UseEntityModalProps<ResourceType>> = ({
         kind: "success",
         title: t("authorizationCreated"),
         subtitle: t("authorizationCreatedSuccess", {
-          resourceId,
+          resourceId: data.resourceId,
         }),
       });
       onSuccess();
@@ -137,87 +183,137 @@ const AddModal: FC<UseEntityModalProps<ResourceType>> = ({
       error={error}
       submitDisabled={loading}
       confirmLabel={t("createAuthorization")}
-      onSubmit={handleSubmit}
+      onSubmit={handleSubmit(onSubmit)}
     >
       <Row>
-        <Dropdown
-          id="owner-type-dropdown"
-          label={t("selectOwnerType")}
-          titleText={t("ownerType")}
-          items={ownerTypeItems.filter((ownerType) => {
-            const excludedType = isOIDC
-              ? []
-              : [OwnerType.MAPPING_RULE, OwnerType.CLIENT];
+        <Controller
+          name="ownerType"
+          control={control}
+          render={({ field }) => (
+            <Dropdown
+              id="owner-type-dropdown"
+              label={t("selectOwnerType")}
+              titleText={t("ownerType")}
+              items={ownerTypeItems.filter((ownerType) => {
+                const excludedType = isOIDC
+                  ? []
+                  : [OwnerType.MAPPING_RULE, OwnerType.CLIENT];
 
-            return !excludedType.includes(ownerType);
-          })}
-          onChange={(item: { selectedItem: OwnerType }) => {
-            setOwnerId("");
-            setOwnerType(item.selectedItem);
-          }}
-          itemToString={(item: Authorization["ownerType"]) =>
-            item ? t(OwnerType[item]) : ""
-          }
-          selectedItem={ownerType}
+                return !excludedType.includes(ownerType);
+              })}
+              onChange={(item: { selectedItem: OwnerType }) => {
+                setValue("ownerId", "");
+                field.onChange(item.selectedItem);
+              }}
+              itemToString={(item: Authorization["ownerType"]) =>
+                item ? t(OwnerType[item]) : ""
+              }
+              selectedItem={field.value}
+            />
+          )}
         />
         <TextFieldContainer>
-          <OwnerSelection
-            type={ownerType}
-            ownerId={ownerId}
-            onChange={setOwnerId}
+          <Controller
+            name="ownerId"
+            control={control}
+            rules={{
+              required: "EMPTY",
+            }}
+            render={({ field, fieldState }) => (
+              <OwnerSelection
+                type={watchedOwnerType}
+                ownerId={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                isEmpty={!!fieldState.error?.message}
+              />
+            )}
           />
         </TextFieldContainer>
       </Row>
       <Divider />
       <Row>
-        <Dropdown
-          id="resource-type-dropdown"
-          label={t("selectResourceType")}
-          titleText={t("resourceType")}
-          items={resourceTypeItems}
-          onChange={(item: { selectedItem: ResourceType }) =>
-            setResourceType(item.selectedItem)
-          }
-          itemToString={(item: string) => (item ? t(item) : "")}
-          selectedItem={
-            resourceTypeItems.find((item) => item === resourceType) || ""
-          }
+        <Controller
+          name="resourceType"
+          control={control}
+          render={({ field }) => (
+            <Dropdown
+              id="resource-type-dropdown"
+              label={t("selectResourceType")}
+              titleText={t("resourceType")}
+              items={resourceTypeItems}
+              onChange={(item: { selectedItem: ResourceType }) => {
+                setValue("permissionTypes", []);
+                field.onChange(item.selectedItem);
+              }}
+              itemToString={(item: string) => (item ? t(item) : "")}
+              selectedItem={
+                resourceTypeItems.find((item) => item === field.value) || ""
+              }
+            />
+          )}
         />
         <TextFieldContainer>
-          <TextField
-            label={t("resourceId")}
-            placeholder={t("enterId")}
-            onChange={setResourceId}
-            value={resourceId}
-            autoFocus
+          <Controller
+            name="resourceId"
+            control={control}
+            rules={{
+              required: t("resourceIdRequired"),
+            }}
+            render={({ field, fieldState }) => (
+              <TextField
+                {...field}
+                label={t("resourceId")}
+                placeholder={t("enterId")}
+                errors={fieldState.error?.message}
+                autoFocus
+              />
+            )}
           />
         </TextFieldContainer>
       </Row>
       <Divider />
-      <CheckboxGroup
-        legendText={
-          <PermissionsSectionLabel>
-            <Translate i18nKey="selectPermission">
-              Select at least one permission. Visit{" "}
-              <DocumentationLink path="" withIcon>
-                authorizations
-              </DocumentationLink>{" "}
-              for a full overview.
-            </Translate>
-          </PermissionsSectionLabel>
-        }
-      >
-        {resourcePermissions[resourceType].map((permission) => (
-          <Checkbox
-            key={permission}
-            labelText={t(permission)}
-            id={permission}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleChangeCheckbox(e.target.checked, permission)
+      <Controller
+        name="permissionTypes"
+        control={control}
+        rules={{
+          required: t("permissionRequired"),
+        }}
+        render={({ field, fieldState }) => (
+          <CheckboxGroup
+            legendText={
+              <PermissionsSectionLabel>
+                <Translate i18nKey="selectPermission">
+                  Select at least one permission. Visit{" "}
+                  <DocumentationLink path="" withIcon>
+                    authorizations
+                  </DocumentationLink>{" "}
+                  for a full overview.
+                </Translate>
+              </PermissionsSectionLabel>
             }
-          />
-        ))}
-      </CheckboxGroup>
+            invalid={!!fieldState.error}
+            invalidText={fieldState.error?.message}
+          >
+            {resourcePermissions[watchedResourceType].map((permission) => (
+              <Checkbox
+                key={permission}
+                labelText={PermissionType[permission]}
+                id={permission}
+                checked={field.value.includes(permission)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const currentPermissions = field.value;
+                  const newPermissions = e.target.checked
+                    ? [...currentPermissions, permission]
+                    : currentPermissions.filter((p) => p !== permission);
+                  field.onChange(newPermissions);
+                }}
+                onBlur={field.onBlur}
+              />
+            ))}
+          </CheckboxGroup>
+        )}
+      />
     </FormModal>
   );
 };

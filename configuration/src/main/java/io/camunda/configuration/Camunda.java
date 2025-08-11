@@ -19,6 +19,9 @@ public class Camunda {
   public static final String PREFIX = "camunda";
 
   private Cluster cluster = new Cluster();
+  private System system = new System();
+  private Data data = new Data();
+  private Api api = new Api();
 
   public Cluster getCluster() {
     return cluster;
@@ -26,5 +29,29 @@ public class Camunda {
 
   public void setCluster(final Cluster cluster) {
     this.cluster = cluster;
+  }
+
+  public System getSystem() {
+    return system;
+  }
+
+  public void setSystem(final System system) {
+    this.system = system;
+  }
+
+  public Api getApi() {
+    return api;
+  }
+
+  public void setApi(final Api api) {
+    this.api = api;
+  }
+
+  public Data getData() {
+    return data;
+  }
+
+  public void setData(final Data data) {
+    this.data = data;
   }
 }

@@ -26,7 +26,17 @@ public interface MutableBatchOperationState extends BatchOperationState {
    *
    * @param batchOperationKey the key of the batch operation to mark as started
    */
-  void start(final long batchOperationKey);
+  void transitionToInitialized(final long batchOperationKey);
+
+  /**
+   * Sets the next step for the batch operation init phase.
+   *
+   * @param batchOperationKey the key of the batch operation to mark as started
+   * @param searchResultCursor the cursor of the search client to use for the next step
+   * @param searchQueryPageSize the page size to use for the next step
+   */
+  void continueInitialization(
+      final long batchOperationKey, final String searchResultCursor, int searchQueryPageSize);
 
   /**
    * Marks a batch operation as failed.

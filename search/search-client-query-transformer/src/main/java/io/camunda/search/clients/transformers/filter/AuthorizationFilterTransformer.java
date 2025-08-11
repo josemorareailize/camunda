@@ -17,9 +17,11 @@ import static io.camunda.webapps.schema.descriptors.index.AuthorizationIndex.OWN
 import static io.camunda.webapps.schema.descriptors.index.AuthorizationIndex.OWNER_TYPE;
 import static io.camunda.webapps.schema.descriptors.index.AuthorizationIndex.PERMISSIONS_TYPES;
 import static io.camunda.webapps.schema.descriptors.index.AuthorizationIndex.RESOURCE_ID;
+import static io.camunda.webapps.schema.descriptors.index.AuthorizationIndex.RESOURCE_MATCHER;
 import static io.camunda.webapps.schema.descriptors.index.AuthorizationIndex.RESOURCE_TYPE;
 
 import io.camunda.search.clients.query.SearchQuery;
+import io.camunda.search.exception.CamundaSearchException;
 import io.camunda.search.filter.AuthorizationFilter;
 import io.camunda.security.auth.Authorization;
 import io.camunda.webapps.schema.descriptors.IndexDescriptor;
@@ -33,12 +35,9 @@ public final class AuthorizationFilterTransformer
 
   @Override
   public SearchQuery toSearchQuery(final AuthorizationFilter filter) {
-    if (filter.ownerTypeToOwnerIds() != null && !filter.ownerTypeToOwnerIds().isEmpty()) {
-      return buildOwnerTypeToOwnerIdsQuery(filter);
-    }
-
     return and(
         buildCoreFilters(filter),
+        filter.ownerTypeToOwnerIds() != null ? buildOwnerTypeToOwnerIdsQuery(filter) : null,
         stringTerms(OWNER_ID, filter.ownerIds()),
         filter.ownerType() == null ? null : term(OWNER_TYPE, filter.ownerType()));
   }
@@ -52,11 +51,19 @@ public final class AuthorizationFilterTransformer
     return or(
         filter.ownerTypeToOwnerIds().entrySet().stream()
             .map(
-                entry ->
-                    and(
-                        buildCoreFilters(filter),
-                        term(OWNER_TYPE, entry.getKey().name()),
-                        stringTerms(OWNER_ID, entry.getValue())))
+                entry -> {
+                  final var key = entry.getKey();
+                  final var value = entry.getValue();
+
+                  if (value == null || value.isEmpty()) {
+                    final var message =
+                        "Cannot build owner type to owner ids query, because value for owner type '%s' is null or empty."
+                            .formatted(key.name());
+                    throw new CamundaSearchException(message);
+                  }
+
+                  return and(term(OWNER_TYPE, key.name()), stringTerms(OWNER_ID, value));
+                })
             .toList());
   }
 
@@ -64,6 +71,7 @@ public final class AuthorizationFilterTransformer
     return and(
         filter.authorizationKey() == null ? null : term(ID, filter.authorizationKey()),
         stringTerms(RESOURCE_ID, filter.resourceIds()),
+        filter.resourceMatcher() == null ? null : term(RESOURCE_MATCHER, filter.resourceMatcher()),
         filter.resourceType() == null ? null : term(RESOURCE_TYPE, filter.resourceType()),
         filter.permissionTypes() == null
             ? null

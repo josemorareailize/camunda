@@ -7,6 +7,7 @@
  */
 package io.camunda.zeebe.engine.processing.incident;
 
+import static io.camunda.zeebe.model.bpmn.impl.ZeebeConstants.AD_HOC_SUB_PROCESS_INNER_INSTANCE_ID_POSTFIX;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
@@ -34,6 +35,8 @@ public class AdHocSubProcessIncidentTest {
 
   private static final String PROCESS_ID = "process";
   private static final String AD_HOC_SUB_PROCESS_ELEMENT_ID = "ad-hoc";
+  private static final String AHSP_INNER_ELEMENT_ID =
+      "ad-hoc" + AD_HOC_SUB_PROCESS_INNER_INSTANCE_ID_POSTFIX;
 
   @Rule public final RecordingExporterTestWatcher watcher = new RecordingExporterTestWatcher();
 
@@ -141,6 +144,12 @@ public class AdHocSubProcessIncidentTest {
             .create();
 
     // then
+    final var ahspKey =
+        RecordingExporter.processInstanceRecords(ProcessInstanceIntent.ELEMENT_ACTIVATING)
+            .withProcessInstanceKey(processInstanceKey)
+            .withElementId(AD_HOC_SUB_PROCESS_ELEMENT_ID)
+            .getFirst()
+            .getKey();
     Assertions.assertThat(
             RecordingExporter.incidentRecords(IncidentIntent.CREATED)
                 .withProcessInstanceKey(processInstanceKey)
@@ -149,7 +158,8 @@ public class AdHocSubProcessIncidentTest {
         .hasElementId(AD_HOC_SUB_PROCESS_ELEMENT_ID)
         .hasErrorType(ErrorType.EXTRACT_VALUE_ERROR)
         .hasErrorMessage(
-            "Failed to activate ad-hoc elements. No BPMN elements found with ids: 'D', 'E'.");
+            "Expected to activate activities for ad-hoc sub-process with key '%s', but the given elements [D, E] do not exist."
+                .formatted(ahspKey));
   }
 
   @Test
@@ -174,6 +184,12 @@ public class AdHocSubProcessIncidentTest {
             .create();
 
     // then
+    final var ahspKey =
+        RecordingExporter.processInstanceRecords(ProcessInstanceIntent.ELEMENT_ACTIVATING)
+            .withProcessInstanceKey(processInstanceKey)
+            .withElementId(AD_HOC_SUB_PROCESS_ELEMENT_ID)
+            .getFirst()
+            .getKey();
     Assertions.assertThat(
             RecordingExporter.incidentRecords(IncidentIntent.CREATED)
                 .withProcessInstanceKey(processInstanceKey)
@@ -182,7 +198,8 @@ public class AdHocSubProcessIncidentTest {
         .hasElementId(AD_HOC_SUB_PROCESS_ELEMENT_ID)
         .hasErrorType(ErrorType.EXTRACT_VALUE_ERROR)
         .hasErrorMessage(
-            "Failed to activate ad-hoc elements. No BPMN elements found with ids: 'A2', 'A3'.");
+            "Expected to activate activities for ad-hoc sub-process with key '%d', but the given elements [A2, A3] do not exist."
+                .formatted(ahspKey));
   }
 
   @Test
@@ -210,6 +227,12 @@ public class AdHocSubProcessIncidentTest {
             .create();
 
     // then
+    final var ahspKey =
+        RecordingExporter.processInstanceRecords(ProcessInstanceIntent.ELEMENT_ACTIVATING)
+            .withProcessInstanceKey(processInstanceKey)
+            .withElementId(AD_HOC_SUB_PROCESS_ELEMENT_ID)
+            .getFirst()
+            .getKey();
     Assertions.assertThat(
             RecordingExporter.incidentRecords(IncidentIntent.CREATED)
                 .withProcessInstanceKey(processInstanceKey)
@@ -218,7 +241,8 @@ public class AdHocSubProcessIncidentTest {
         .hasElementId(AD_HOC_SUB_PROCESS_ELEMENT_ID)
         .hasErrorType(ErrorType.EXTRACT_VALUE_ERROR)
         .hasErrorMessage(
-            "Failed to activate ad-hoc elements. No BPMN elements found with ids: 'boundaryEvent'.");
+            "Expected to activate activities for ad-hoc sub-process with key '%d', but the given elements [boundaryEvent] do not exist."
+                .formatted(ahspKey));
   }
 
   @Test
@@ -249,11 +273,11 @@ public class AdHocSubProcessIncidentTest {
     final var incidentCreated =
         RecordingExporter.incidentRecords(IncidentIntent.CREATED)
             .withProcessInstanceKey(processInstanceKey)
-            .withElementId("A")
+            .withElementId(AHSP_INNER_ELEMENT_ID)
             .getFirst();
 
     Assertions.assertThat(incidentCreated.getValue())
-        .hasElementId("A")
+        .hasElementId(AHSP_INNER_ELEMENT_ID)
         .hasErrorType(ErrorType.EXTRACT_VALUE_ERROR)
         .hasErrorMessage(
             "Failed to evaluate completion condition. Expected result of the expression 'completionCondition' to be 'BOOLEAN', but was 'STRING'.");
@@ -324,7 +348,11 @@ public class AdHocSubProcessIncidentTest {
         .containsSequence(
             tuple(AD_HOC_SUB_PROCESS_ELEMENT_ID, ProcessInstanceIntent.ELEMENT_ACTIVATING),
             tuple(AD_HOC_SUB_PROCESS_ELEMENT_ID, ProcessInstanceIntent.ELEMENT_ACTIVATED),
+            tuple(AHSP_INNER_ELEMENT_ID, ProcessInstanceIntent.ELEMENT_ACTIVATING),
+            tuple(AHSP_INNER_ELEMENT_ID, ProcessInstanceIntent.ELEMENT_ACTIVATED),
             tuple("A", ProcessInstanceIntent.ACTIVATE_ELEMENT),
+            tuple(AHSP_INNER_ELEMENT_ID, ProcessInstanceIntent.ELEMENT_ACTIVATING),
+            tuple(AHSP_INNER_ELEMENT_ID, ProcessInstanceIntent.ELEMENT_ACTIVATED),
             tuple("B", ProcessInstanceIntent.ACTIVATE_ELEMENT));
   }
 

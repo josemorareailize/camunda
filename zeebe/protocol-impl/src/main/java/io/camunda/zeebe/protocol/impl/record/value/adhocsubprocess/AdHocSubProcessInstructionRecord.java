@@ -10,7 +10,9 @@ package io.camunda.zeebe.protocol.impl.record.value.adhocsubprocess;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.zeebe.msgpack.property.ArrayProperty;
 import io.camunda.zeebe.msgpack.property.BooleanProperty;
+import io.camunda.zeebe.msgpack.property.LongProperty;
 import io.camunda.zeebe.msgpack.property.StringProperty;
+import io.camunda.zeebe.msgpack.value.StringValue;
 import io.camunda.zeebe.msgpack.value.ValueArray;
 import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue;
 import io.camunda.zeebe.protocol.record.value.AdHocSubProcessInstructionRecordValue;
@@ -20,33 +22,42 @@ import java.util.List;
 
 public final class AdHocSubProcessInstructionRecord extends UnifiedRecordValue
     implements AdHocSubProcessInstructionRecordValue {
+  private static final StringValue AD_HOC_SUB_PROCESS_INSTANCE_KEY =
+      new StringValue("adHocSubProcessInstanceKey");
+  private static final StringValue ACTIVATE_ELEMENTS = new StringValue("activateElements");
+  private static final StringValue IS_CANCEL_REMAINING_INSTANCES =
+      new StringValue("isCancelRemainingInstances");
+  private static final StringValue TENANT_ID = new StringValue("tenantId");
+  private static final StringValue COMPLETION_CONDITION_FULFILLED =
+      new StringValue("completionConditionFulfilled");
 
-  private static final String DEFAULT_STRING = "";
-
-  private final StringProperty adHocSubProcessInstanceKey =
-      new StringProperty("adHocSubProcessInstanceKey", DEFAULT_STRING);
+  private final LongProperty adHocSubProcessInstanceKey =
+      new LongProperty(AD_HOC_SUB_PROCESS_INSTANCE_KEY, -1L);
   private final ArrayProperty<AdHocSubProcessActivateElementInstruction> activateElements =
-      new ArrayProperty<>("activateElements", AdHocSubProcessActivateElementInstruction::new);
+      new ArrayProperty<>(ACTIVATE_ELEMENTS, AdHocSubProcessActivateElementInstruction::new);
   private final BooleanProperty cancelRemainingInstances =
-      new BooleanProperty("isCancelRemainingInstances", false);
+      new BooleanProperty(IS_CANCEL_REMAINING_INSTANCES, false);
   private final StringProperty tenantId =
-      new StringProperty("tenantId", TenantOwned.DEFAULT_TENANT_IDENTIFIER);
+      new StringProperty(TENANT_ID, TenantOwned.DEFAULT_TENANT_IDENTIFIER);
+  private final BooleanProperty completionConditionFulfilledProp =
+      new BooleanProperty(COMPLETION_CONDITION_FULFILLED, false);
 
   public AdHocSubProcessInstructionRecord() {
-    super(4);
+    super(5);
     declareProperty(adHocSubProcessInstanceKey)
         .declareProperty(activateElements)
         .declareProperty(cancelRemainingInstances)
-        .declareProperty(tenantId);
+        .declareProperty(tenantId)
+        .declareProperty(completionConditionFulfilledProp);
   }
 
   @Override
-  public String getAdHocSubProcessInstanceKey() {
-    return BufferUtil.bufferAsString(adHocSubProcessInstanceKey.getValue());
+  public long getAdHocSubProcessInstanceKey() {
+    return adHocSubProcessInstanceKey.getValue();
   }
 
   public AdHocSubProcessInstructionRecord setAdHocSubProcessInstanceKey(
-      final String adHocSubProcessInstanceKey) {
+      final long adHocSubProcessInstanceKey) {
     this.adHocSubProcessInstanceKey.setValue(adHocSubProcessInstanceKey);
     return this;
   }
@@ -61,6 +72,16 @@ public final class AdHocSubProcessInstructionRecord extends UnifiedRecordValue
   @Override
   public boolean isCancelRemainingInstances() {
     return cancelRemainingInstances.getValue();
+  }
+
+  @Override
+  public boolean isCompletionConditionFulfilled() {
+    return completionConditionFulfilledProp.getValue();
+  }
+
+  public AdHocSubProcessInstructionRecord setCompletionConditionFulfilled(final boolean fulfilled) {
+    completionConditionFulfilledProp.setValue(fulfilled);
+    return this;
   }
 
   public AdHocSubProcessInstructionRecord cancelRemainingInstances(

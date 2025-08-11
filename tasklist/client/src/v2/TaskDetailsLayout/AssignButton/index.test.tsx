@@ -55,7 +55,8 @@ describe('AssignButton', () => {
       <AssignButton
         id={mockUnassignedTask.userTaskKey}
         assignee={undefined}
-        currentUser={currentUser.userId}
+        taskState={mockUnassignedTask.state}
+        currentUser={currentUser.username}
       />,
       {wrapper: getWrapper()},
     );
@@ -66,8 +67,9 @@ describe('AssignButton', () => {
     rerender(
       <AssignButton
         id={mockAssignedTask.userTaskKey}
-        assignee={currentUser.userId}
-        currentUser={currentUser.userId}
+        assignee={currentUser.username}
+        taskState={mockAssignedTask.state}
+        currentUser={currentUser.username}
       />,
     );
 
@@ -93,8 +95,9 @@ describe('AssignButton', () => {
     const {user, rerender} = render(
       <AssignButton
         id={mockAssignedTask.userTaskKey}
-        assignee={currentUser.userId}
-        currentUser={currentUser.userId}
+        assignee={currentUser.username}
+        taskState={mockAssignedTask.state}
+        currentUser={currentUser.username}
       />,
       {wrapper: getWrapper()},
     );
@@ -107,7 +110,8 @@ describe('AssignButton', () => {
       <AssignButton
         id={mockUnassignedTask.userTaskKey}
         assignee={undefined}
-        currentUser={currentUser.userId}
+        taskState={mockUnassignedTask.state}
+        currentUser={currentUser.username}
       />,
     );
 
@@ -132,7 +136,8 @@ describe('AssignButton', () => {
       <AssignButton
         id={mockUnassignedTask.userTaskKey}
         assignee={undefined}
-        currentUser={currentUser.userId}
+        taskState={mockUnassignedTask.state}
+        currentUser={currentUser.username}
       />,
       {wrapper: getWrapper()},
     );
@@ -163,8 +168,9 @@ describe('AssignButton', () => {
     const {user} = render(
       <AssignButton
         id={mockUnassignedTask.userTaskKey}
-        assignee={currentUser.userId}
-        currentUser={currentUser.userId}
+        assignee={currentUser.username}
+        taskState={mockUnassignedTask.state}
+        currentUser={currentUser.username}
       />,
       {wrapper: getWrapper()},
     );

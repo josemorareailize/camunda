@@ -7,6 +7,10 @@
  */
 package io.camunda.operate.util;
 
+import io.camunda.configuration.UnifiedConfiguration;
+import io.camunda.configuration.UnifiedConfigurationHelper;
+import io.camunda.configuration.beanoverrides.GatewayBasedPropertiesOverride;
+import io.camunda.configuration.beanoverrides.OperatePropertiesOverride;
 import io.camunda.operate.OperateModuleConfiguration;
 import io.camunda.webapps.WebappsModuleConfiguration;
 import org.springframework.boot.SpringApplication;
@@ -28,7 +32,13 @@ import org.springframework.context.annotation.Import;
           value = OperateModuleConfiguration.class),
     },
     nameGenerator = FullyQualifiedAnnotationBeanNameGenerator.class)
-@Import({WebappsModuleConfiguration.class, TestOperatePropertiesOverride.class})
+@Import({
+  WebappsModuleConfiguration.class,
+  OperatePropertiesOverride.class,
+  UnifiedConfiguration.class,
+  UnifiedConfigurationHelper.class,
+  GatewayBasedPropertiesOverride.class
+})
 public class TestApplication {
 
   public static void main(final String[] args) throws Exception {

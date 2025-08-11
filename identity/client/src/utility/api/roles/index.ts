@@ -28,7 +28,7 @@ export type Role = {
 
 export const searchRoles: ApiDefinition<
   SearchResponse<Role>,
-  PageSearchParams | undefined
+  PageSearchParams | Record<string, unknown> | undefined
 > = (params) => apiPost(`${ROLES_ENDPOINT}/search`, params);
 
 type GetRoleParams = {
@@ -49,7 +49,7 @@ export const deleteRole: ApiDefinition<undefined, { roleId: string }> = ({
   roleId,
 }) => apiDelete(`${ROLES_ENDPOINT}/${roleId}`);
 
-// ----------------- Mappings within a Role -----------------
+// ----------------- Mapping rules within a Role -----------------
 
 export type GetRoleMappingRulesParams = {
   roleId: string;

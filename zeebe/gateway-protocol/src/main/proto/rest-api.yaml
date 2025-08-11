@@ -48,9 +48,9 @@ tags:
   - name: Role
   - name: Setup
   - name: Signal
+  - name: System
   - name: Tenant
   - name: User
-  - name: Usage metrics
   - name: User task
   - name: Variable
 
@@ -853,7 +853,7 @@ paths:
     post:
       tags:
         - Tenant
-      operationId: searchMappingsForTenant
+      operationId: searchMappingRulesForTenant
       summary: Search mapping rules for tenant
       description: Retrieves a filtered and sorted list of MappingRules for a specified tenant.
       parameters:
@@ -3423,7 +3423,7 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          description: The role or mapping with the given ID was not found.
+          description: The role or mapping rule with the given ID was not found.
           content:
             application/problem+json:
               schema:
@@ -4868,10 +4868,11 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
         "500":
           $ref: "#/components/responses/InternalServerError"
-  /usage-metrics:
+
+  /system/usage-metrics:
     get:
       tags:
-        - Usage metrics
+        - System
       operationId: getUsageMetrics
       summary: Get usage metrics
       description: Retrieve the usage metrics based on given criteria.
@@ -4919,6 +4920,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
   /deployments:
     post:
       tags:
@@ -5412,9 +5414,6 @@ components:
     TenantCreateResult:
       type: object
       properties:
-        tenantKey:
-          description: The unique system-generated internal tenant ID.
-          type: string
         tenantId:
           type: string
           description: The unique external tenant ID
@@ -5450,9 +5449,6 @@ components:
         description:
           type: string
           description: The description of the tenant.
-        tenantKey:
-          type: string
-          description: The unique system-generated internal tenant ID.
 
     TenantResult:
       description: Tenant search response item.
@@ -5467,9 +5463,6 @@ components:
         description:
           type: string
           description: The tenant description.
-        tenantKey:
-          type: string
-          description: The unique system-generated internal tenant ID.
     TenantSearchQuerySortRequest:
       type: object
       properties:
@@ -6651,12 +6644,7 @@ components:
       nullable: true
       properties:
         operationReference:
-          description: |
-            A reference key chosen by the user that will be part of all records resulting from this operation.
-            Must be > 0 if provided.
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/OperationReference'
     ElementInstanceSearchQuerySortRequest:
       type: object
       properties:
@@ -6715,6 +6703,7 @@ components:
             - SUB_PROCESS
             - EVENT_SUB_PROCESS
             - AD_HOC_SUB_PROCESS
+            - AD_HOC_SUB_PROCESS_INNER_INSTANCE
             - START_EVENT
             - INTERMEDIATE_CATCH_EVENT
             - INTERMEDIATE_THROW_EVENT
@@ -6809,6 +6798,7 @@ components:
             - SUB_PROCESS
             - EVENT_SUB_PROCESS
             - AD_HOC_SUB_PROCESS
+            - AD_HOC_SUB_PROCESS_INNER_INSTANCE
             - START_EVENT
             - INTERMEDIATE_CATCH_EVENT
             - INTERMEDIATE_THROW_EVENT
@@ -6860,6 +6850,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AdHocSubProcessActivateActivityReference"
+        cancelRemainingInstances:
+          description: Whether to cancel remaining instances of the ad-hoc sub-process.
+          type: boolean
+          default: false
       required:
         - elements
     AdHocSubProcessActivateActivityReference:
@@ -6868,6 +6862,10 @@ components:
         elementId:
           description: The ID of the element that should be activated.
           type: string
+        variables:
+          description: Variables to be set when activating the element.
+          type: object
+          additionalProperties: true
       required:
         - elementId
     DecisionDefinitionSearchQuerySortRequest:
@@ -7385,6 +7383,8 @@ components:
         - GROUP
         - USER
         - ROLE
+        - USAGE_METRIC
+        - DOCUMENT
     OwnerTypeEnum:
       description: The type of the owner of permissions.
       enum:
@@ -7549,9 +7549,6 @@ components:
         email:
           description: The email of the user.
           type: "string"
-        userKey:
-          description: The key of the created user
-          type: "string"
     UserUpdateResult:
       type: object
       properties:
@@ -7618,7 +7615,7 @@ components:
           items:
             $ref: "#/components/schemas/MappingRuleSearchQuerySortRequest"
         filter:
-          description: The mapping search filters.
+          description: The mapping rule search filters.
           allOf:
             - $ref: "#/components/schemas/MappingRuleFilter"
     UserFilter:
@@ -7649,18 +7646,21 @@ components:
           description: The value of the claim to match.
         name:
           type: string
-          description: The name of the mapping.
+          description: The name of the mapping rule.
         mappingRuleId:
           type: string
-          description: The ID of the mapping.
+          description: The ID of the mapping rule.
     CamundaUserResult:
       type: object
       properties:
-        userId:
-          description: The ID of the user.
-          type: string
+        username:
+          description: The username of the user.
+          type: "string"
         displayName:
           description: The display name of the user.
+          type: string
+        email:
+          description: The email of the user.
           type: string
         authorizedApplications:
           description: The applications the user is authorized to use.
@@ -7671,14 +7671,7 @@ components:
           description: The tenants the user is a member of.
           type: array
           items:
-            type: object
-            properties:
-              tenantId:
-                type: string
-                description: The ID of the tenant.
-              name:
-                type: string
-                description: The name of the tenant.
+            $ref: "#/components/schemas/TenantResult"
         groups:
           description: The groups assigned to the user.
           type: array
@@ -7694,25 +7687,15 @@ components:
           type: string
         c8Links:
           description: The links to the components in the C8 stack.
-          type: array
-          items:
-            type: object
-            properties:
-              name:
-                type: string
-                description: The name of the component.
-              link:
-                type: string
-                description: A link to the component.
+          type: object
+          additionalProperties:
+            type: string
         canLogout:
           description: Flag for understanding if the user is able to perform logout.
           type: boolean
         apiUser:
           description: Flag for understanding if the user is an API user.
           type: boolean
-        userKey:
-          description: The system generated key of the user.
-          type: string
     UserResult:
       type: "object"
       properties:
@@ -7724,9 +7707,6 @@ components:
           type: "string"
         email:
           description: The email of the user.
-          type: "string"
-        userKey:
-          description: The key of the user.
           type: "string"
     UserSearchResult:
       type: object
@@ -8292,7 +8272,7 @@ components:
           description: The value of the claim to map.
         name:
           type: string
-          description: The name of the mapping.
+          description: The name of the mapping rule.
       required:
         - claimName
         - claimValue
@@ -8304,7 +8284,7 @@ components:
       properties:
         mappingRuleId:
           type: string
-          description: The unique ID of the mapping.
+          description: The unique ID of the mapping rule.
       required:
         - mappingRuleId
     MappingRuleUpdateRequest:
@@ -8322,10 +8302,10 @@ components:
           description: The value of the claim to map.
         name:
           type: string
-          description: The name of the mapping.
+          description: The name of the mapping rule.
         mappingRuleId:
           type: string
-          description: The unique ID of the mapping.
+          description: The unique ID of the mapping rule.
     MappingRuleCreateResult:
       type: object
       allOf:
@@ -8355,10 +8335,10 @@ components:
           description: The value of the claim to map.
         name:
           type: string
-          description: The name of the mapping.
+          description: The name of the mapping rule.
         mappingRuleId:
           type: string
-          description: The ID of the mapping.
+          description: The ID of the mapping rule.
 
     TopologyResponse:
       description: The response of a topology request.
@@ -8921,12 +8901,7 @@ components:
         changeset:
           $ref: "#/components/schemas/JobChangeset"
         operationReference:
-          description: |
-            A reference key chosen by the user that will be part of all records resulting from this operation.
-            Must be > 0 if provided.
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/OperationReference'
       required:
         - changeset
     JobChangeset:
@@ -9786,7 +9761,13 @@ components:
         - ASC
         - DESC
       default: ASC
-
+    OperationReference:
+      description: |
+        A reference key chosen by the user that will be part of all records resulting from this operation.
+        Must be > 0 if provided.
+      type: integer
+      format: int64
+      minimum: 1
     MessageCorrelationRequest:
       type: object
       properties:
@@ -10114,12 +10095,7 @@ components:
       type: object
       properties:
         operationReference:
-          description: |
-            A reference key chosen by the user that will be part of all records resulting from this operation.
-            Must be >0 if provided.
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/OperationReference'
 
     ProcessInstanceCreationInstruction:
       type: object
@@ -10146,12 +10122,7 @@ components:
           description: The tenant ID of the process definition.
           type: string
         operationReference:
-          description: |
-            A reference key chosen by the user that will be part of all records resulting from this operation.
-            Must be >0 if provided.
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/OperationReference'
         startInstructions:
           description: |
             List of start instructions. By default, the process instance will start at
@@ -10304,11 +10275,7 @@ components:
           items:
             $ref: "#/components/schemas/MigrateProcessInstanceMappingInstruction"
         operationReference:
-          description: |
-            A reference key chosen by the user that will be part of all records resulting from this operation. Must be > 0 if provided.
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/OperationReference'
         targetProcessDefinitionKey:
           description: The key of process definition to migrate the process instance to.
           type: string
@@ -10333,11 +10300,7 @@ components:
       type: object
       properties:
         operationReference:
-          description: |
-            A reference key chosen by the user that will be part of all records resulting from this operation. Must be > 0 if provided.
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/OperationReference'
         activateInstructions:
           description: Instructions describing which elements should be activated in which scopes and which variables should be created.
           type: array
@@ -10425,12 +10388,7 @@ components:
           type: boolean
           default: false
         operationReference:
-          description: >
-            A reference key chosen by the user that will be part of all records resulting from this operation.
-            Must be > 0 if provided.
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/OperationReference'
       required:
         - variables
 
@@ -10439,12 +10397,7 @@ components:
       nullable: true
       properties:
         operationReference:
-          description: |
-            A reference key chosen by the user that will be part of all records resulting from this operation.
-            Must be > 0 if provided.
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/OperationReference'
 
     SignalBroadcastRequest:
       type: object
@@ -10519,6 +10472,11 @@ components:
       - RESOLVE_INCIDENT
       - MIGRATE_PROCESS_INSTANCE
       - MODIFY_PROCESS_INSTANCE
+      - DELETE_PROCESS_INSTANCE
+      - ADD_VARIABLE
+      - UPDATE_VARIABLE
+      - DELETE_DECISION_DEFINITION
+      - DELETE_PROCESS_DEFINITION
     BatchOperationCreatedResult:
       type: object
       properties:
@@ -10649,7 +10607,6 @@ components:
         - COMPLETED
         - PARTIALLY_COMPLETED
         - CANCELED
-        - INCOMPLETED
     BatchOperationItemSearchQuerySortRequest:
       type: object
       properties:
@@ -10767,7 +10724,6 @@ components:
             - COMPLETED
             - PARTIALLY_COMPLETED
             - CANCELED
-            - INCOMPLETED
         batchOperationType:
           $ref: "#/components/schemas/BatchOperationTypeEnum"
         startDate:
@@ -10807,6 +10763,7 @@ components:
           type: string
           enum:
             - QUERY_FAILED
+            - RESULT_BUFFER_SIZE_EXCEEDED
         message:
           description: The error message that occurred during the batch operation.
           type: string
@@ -10838,6 +10795,7 @@ components:
           enum:
             - ACTIVE
             - COMPLETED
+            - SKIPPED
             - CANCELED
             - FAILED
         processedDate:

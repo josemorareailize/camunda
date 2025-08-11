@@ -7,15 +7,20 @@
  */
 package io.camunda.zeebe.engine.processing.deployment.model.element;
 
+import static io.camunda.zeebe.model.bpmn.impl.ZeebeConstants.AD_HOC_SUB_PROCESS_INNER_INSTANCE_ID_POSTFIX;
+
 import io.camunda.zeebe.el.Expression;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeAdHocImplementationType;
 import io.camunda.zeebe.util.buffer.BufferUtil;
 import java.util.HashMap;
 import java.util.Map;
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 public class ExecutableAdHocSubProcess extends ExecutableFlowElementContainer
     implements ExecutableJobWorkerElement {
 
+  private final String innerInstanceId;
   private Expression activeElementsCollection;
   private Expression completionCondition;
   private boolean cancelRemainingInstances;
@@ -23,9 +28,11 @@ public class ExecutableAdHocSubProcess extends ExecutableFlowElementContainer
   private JobWorkerProperties jobWorkerProperties;
 
   private final Map<String, ExecutableFlowNode> adHocActivitiesById = new HashMap<>();
+  private final DirectBuffer adHocActivitiesMetadata = new UnsafeBuffer();
 
   public ExecutableAdHocSubProcess(final String id) {
     super(id);
+    innerInstanceId = id + AD_HOC_SUB_PROCESS_INNER_INSTANCE_ID_POSTFIX;
   }
 
   public Expression getActiveElementsCollection() {
@@ -34,6 +41,10 @@ public class ExecutableAdHocSubProcess extends ExecutableFlowElementContainer
 
   public void setActiveElementsCollection(final Expression activeElementsCollection) {
     this.activeElementsCollection = activeElementsCollection;
+  }
+
+  public String getInnerInstanceId() {
+    return innerInstanceId;
   }
 
   public Expression getCompletionCondition() {
@@ -77,5 +88,13 @@ public class ExecutableAdHocSubProcess extends ExecutableFlowElementContainer
   @Override
   public void setJobWorkerProperties(final JobWorkerProperties jobWorkerProperties) {
     this.jobWorkerProperties = jobWorkerProperties;
+  }
+
+  public DirectBuffer getAdHocActivitiesMetadata() {
+    return adHocActivitiesMetadata;
+  }
+
+  public void setAdHocActivitiesMetadata(final DirectBuffer activitiesMetadata) {
+    adHocActivitiesMetadata.wrap(activitiesMetadata);
   }
 }

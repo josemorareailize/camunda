@@ -150,6 +150,8 @@ public class OpensearchExporterConfiguration {
   }
 
   public static class IndexConfiguration {
+
+    public static final int DEFAULT_INDEX_TEMPLATE_PRIORITY = 20;
     // prefix for index and templates
     public String prefix = "zeebe-record";
 
@@ -209,6 +211,7 @@ public class OpensearchExporterConfiguration {
     public boolean batchOperationExecution = false;
     public boolean batchOperationLifecycleManagement = false;
     public boolean batchOperationPartitionLifecycle = false;
+    public boolean batchOperationInitialization = false;
 
     public boolean asyncRequest = false;
 
@@ -217,6 +220,7 @@ public class OpensearchExporterConfiguration {
     // index settings
     private Integer numberOfShards = null;
     private Integer numberOfReplicas = null;
+    private int priority = DEFAULT_INDEX_TEMPLATE_PRIORITY;
 
     public Integer getNumberOfShards() {
       return numberOfShards;
@@ -232,6 +236,14 @@ public class OpensearchExporterConfiguration {
 
     public void setNumberOfReplicas(final Integer numberOfReplicas) {
       this.numberOfReplicas = numberOfReplicas;
+    }
+
+    public int getPriority() {
+      return priority;
+    }
+
+    public void setPriority(final int priority) {
+      this.priority = priority;
     }
 
     @Override

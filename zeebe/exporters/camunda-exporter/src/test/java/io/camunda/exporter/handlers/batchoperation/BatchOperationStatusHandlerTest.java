@@ -7,6 +7,7 @@
  */
 package io.camunda.exporter.handlers.batchoperation;
 
+import static io.camunda.exporter.utils.ExporterUtil.map;
 import static io.camunda.zeebe.protocol.record.RecordMetadataDecoder.batchOperationReferenceNullValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -63,7 +64,7 @@ class BatchOperationStatusHandlerTest {
           .thenReturn(
               Optional.of(
                   new CachedBatchOperationEntity(
-                      String.valueOf(batchOperationKey), handler.getRelevantOperationType())));
+                      String.valueOf(batchOperationKey), map(handler.getRelevantOperationType()))));
     }
 
     @Test
@@ -97,7 +98,7 @@ class BatchOperationStatusHandlerTest {
           .thenReturn(
               Optional.of(
                   new CachedBatchOperationEntity(
-                      String.valueOf(batchOperationKey), otherOperationType)));
+                      String.valueOf(batchOperationKey), map(otherOperationType))));
 
       final var record =
           ImmutableRecord.<T>builder()
@@ -139,7 +140,7 @@ class BatchOperationStatusHandlerTest {
           .thenReturn(
               Optional.of(
                   new CachedBatchOperationEntity(
-                      String.valueOf(batchOperationKey), otherOperationType)));
+                      String.valueOf(batchOperationKey), map(otherOperationType))));
 
       final var record =
           ImmutableRecord.<T>builder()
@@ -178,6 +179,23 @@ class BatchOperationStatusHandlerTest {
       assertThat(entity.getState()).isEqualTo(OperationState.FAILED);
       assertThat(entity.getErrorMessage())
           .isEqualTo(record.getRejectionType() + ": " + record.getRejectionReason());
+      assertThat(entity.getCompletedDate()).isNull();
+    }
+
+    @Test
+    void shouldUpdateEntityOnNotFound() {
+      final var record =
+          ImmutableRecord.<T>builder()
+              .from(createFailureRecord())
+              .withRejectionType(RejectionType.NOT_FOUND)
+              .build();
+
+      final var entity = new OperationEntity();
+
+      handler.updateEntity(record, entity);
+
+      assertThat(entity.getState()).isEqualTo(OperationState.SKIPPED);
+      assertThat(entity.getErrorMessage()).isNull();
       assertThat(entity.getCompletedDate()).isNull();
     }
 
@@ -269,7 +287,7 @@ class BatchOperationStatusHandlerTest {
       return factory.generateRecord(
           ValueType.PROCESS_INSTANCE_MODIFICATION,
           b ->
-              b.withRejectionType(RejectionType.NOT_FOUND)
+              b.withRejectionType(RejectionType.PROCESSING_ERROR)
                   .withIntent(ProcessInstanceModificationIntent.MODIFY)
                   .withBatchOperationReference(batchOperationKey));
     }
@@ -313,7 +331,7 @@ class BatchOperationStatusHandlerTest {
       return factory.generateRecord(
           ValueType.PROCESS_INSTANCE_MIGRATION,
           b ->
-              b.withRejectionType(RejectionType.NOT_FOUND)
+              b.withRejectionType(RejectionType.PROCESSING_ERROR)
                   .withIntent(ProcessInstanceMigrationIntent.MIGRATE)
                   .withBatchOperationReference(batchOperationKey));
     }
@@ -380,7 +398,7 @@ class BatchOperationStatusHandlerTest {
       return factory.generateRecord(
           ValueType.PROCESS_INSTANCE_MIGRATION,
           b ->
-              b.withRejectionType(RejectionType.NOT_FOUND)
+              b.withRejectionType(RejectionType.PROCESSING_ERROR)
                   .withValue(
                       ImmutableProcessInstanceRecordValue.builder()
                           .from(factory.generateObject(ProcessInstanceRecordValue.class))
@@ -429,7 +447,7 @@ class BatchOperationStatusHandlerTest {
       return factory.generateRecord(
           ValueType.INCIDENT,
           b ->
-              b.withRejectionType(RejectionType.NOT_FOUND)
+              b.withRejectionType(RejectionType.PROCESSING_ERROR)
                   .withIntent(IncidentIntent.RESOLVE)
                   .withBatchOperationReference(batchOperationKey));
     }

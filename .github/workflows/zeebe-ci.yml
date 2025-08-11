@@ -31,7 +31,7 @@ env:
 
 jobs:
   smoke-tests:
-    name: "[Smoke] ${{ matrix.os }} with ${{ matrix.arch }}"
+    name: "[Smoke] ${{ matrix.os }} with ${{ matrix.arch }} / Core Features"
     timeout-minutes: 20
     permissions: {}  # GITHUB_TOKEN unused in this job
     runs-on: ${{ matrix.runner }}
@@ -74,6 +74,7 @@ jobs:
       - name: Create build output log file
         run: echo "BUILD_OUTPUT_FILE_PATH=$(mktemp)" >> "$GITHUB_ENV"
       - name: Run smoke test on ${{ matrix.arch }}
+        shell: bash
         env:
           # For non Linux runners there is no container available for testing, see build-zeebe-docker job
           EXCLUDED_TEST_GROUPS: ${{ runner.os != 'Linux' && 'container' }}
@@ -105,14 +106,14 @@ jobs:
           job_name: "smoke-tests/${{ matrix.os }}-${{ matrix.arch }}"
           build_status: ${{ job.status }}
           user_reason: ${{ (steps.analyze-test-run.outputs.flakyTests != '') && 'flaky-tests' || '' }}
-          user_description: ${{ steps.analyze-test-run.outputs.flakyTests }}
+          user_description: "team-distributed-systems"
           detailed_junit_flaky_tests: ${{ matrix.os != 'macos' && matrix.os != 'windows' }}  # feature only supported on Linux for now
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
 
   property-tests:
-    name: Property Tests
+    name: "[Property] Tests / Core Features"
     runs-on: gcp-perf-core-8-default
     timeout-minutes: 20
     permissions: {}  # GITHUB_TOKEN unused in this job
@@ -129,6 +130,7 @@ jobs:
       - name: Create build output log file
         run: echo "BUILD_OUTPUT_FILE_PATH=$(mktemp)" >> "$GITHUB_ENV"
       - name: Maven Test Build
+        shell: bash
         run: >
           ./mvnw -T1C -B --no-snapshot-updates
           -P parallel-tests,include-random-tests
@@ -157,14 +159,14 @@ jobs:
         with:
           build_status: ${{ job.status }}
           user_reason: ${{ (steps.analyze-test-run.outputs.flakyTests != '') && 'flaky-tests' || '' }}
-          user_description: ${{ steps.analyze-test-run.outputs.flakyTests }}
+          user_description: "team-distributed-systems"
           detailed_junit_flaky_tests: true
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
 
   performance-tests:
-    name: Performance Tests
+    name: "[Performance] Tests / Core Features"
     runs-on: gcp-perf-core-16-default
     timeout-minutes: 20
     permissions: {}  # GITHUB_TOKEN unused in this job
@@ -183,6 +185,7 @@ jobs:
       - name: Create build output log file
         run: echo "BUILD_OUTPUT_FILE_PATH=$(mktemp)" >> "$GITHUB_ENV"
       - name: Maven Test Build
+        shell: bash
         run: >
           ./mvnw -B --no-snapshot-updates
           -P include-performance-tests
@@ -222,7 +225,7 @@ jobs:
         with:
           build_status: ${{ job.status }}
           user_reason: ${{ (steps.analyze-test-run.outputs.flakyTests != '') && 'flaky-tests' || '' }}
-          user_description: ${{ steps.analyze-test-run.outputs.flakyTests }}
+          user_description: "team-core-features"
           detailed_junit_flaky_tests: true
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
@@ -230,7 +233,7 @@ jobs:
 
   strace-tests:
     # Zeebe tests requiring strace
-    name: Strace Tests
+    name: "[UT] Strace Tests / Core Features"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions: {}  # GITHUB_TOKEN unused in this job
@@ -251,6 +254,7 @@ jobs:
       - name: Create build output log file
         run: echo "BUILD_OUTPUT_FILE_PATH=$(mktemp)" >> "$GITHUB_ENV"
       - name: Maven Test Build
+        shell: bash
         run: >
           ./mvnw -T1C -B --no-snapshot-updates
           -P include-strace-tests
@@ -279,14 +283,14 @@ jobs:
         with:
           build_status: ${{ job.status }}
           user_reason: ${{ (steps.analyze-test-run.outputs.flakyTests != '') && 'flaky-tests' || '' }}
-          user_description: ${{ steps.analyze-test-run.outputs.flakyTests }}
+          user_description: "team-distributed-systems"
           detailed_junit_flaky_tests: true
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
 
   docker-checks:
-    name: Docker checks
+    name: "[Build] Docker Build Checks / Core Features"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -350,6 +354,7 @@ jobs:
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+          user_description: "team-distributed-systems"
 
   test-summary:
     # Used by the merge queue to check all tests, including the unit test matrix.
@@ -420,6 +425,7 @@ jobs:
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+          user_description: "team-distributed-systems"
   deploy-benchmark-images:
     name: Deploy benchmark images
     timeout-minutes: 5
@@ -466,6 +472,7 @@ jobs:
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+          user_description: "team-distributed-systems"
   deploy-snyk-projects:
     name: Deploy Snyk development projects
     needs: [ test-summary ]
@@ -520,3 +527,4 @@ jobs:
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+          user_description: "General"

@@ -19,8 +19,8 @@ import io.camunda.service.GroupServices;
 import io.camunda.service.MappingRuleServices;
 import io.camunda.service.RoleServices;
 import io.camunda.service.TenantServices;
-import io.camunda.service.TenantServices.TenantDTO;
 import io.camunda.service.TenantServices.TenantMemberRequest;
+import io.camunda.service.TenantServices.TenantRequest;
 import io.camunda.service.UserServices;
 import io.camunda.zeebe.gateway.protocol.rest.GroupSearchQueryResult;
 import io.camunda.zeebe.gateway.protocol.rest.MappingRuleSearchQueryRequest;
@@ -190,13 +190,13 @@ public class TenantController {
 
   @RequiresSecondaryStorage
   @CamundaPostMapping(path = "/{tenantId}/mapping-rules/search")
-  public ResponseEntity<MappingRuleSearchQueryResult> searchMappingRulesInTenant(
+  public ResponseEntity<MappingRuleSearchQueryResult> searchMappingRulesForTenant(
       @PathVariable final String tenantId,
       @RequestBody(required = false) final MappingRuleSearchQueryRequest query) {
     return SearchQueryRequestMapper.toMappingRuleQuery(query)
         .fold(
             RestErrorMapper::mapProblemToResponse,
-            mappingRuleQuery -> searchMappingRulesInTenant(tenantId, mappingRuleQuery));
+            mappingRuleQuery -> searchMappingRulesForTenant(tenantId, mappingRuleQuery));
   }
 
   @CamundaDeleteMapping(path = "/{tenantId}/mapping-rules/{mappingRuleId}")
@@ -266,12 +266,13 @@ public class TenantController {
             tenantQuery -> searchClientsInTenant(tenantId, tenantQuery));
   }
 
-  private CompletableFuture<ResponseEntity<Object>> createTenant(final TenantDTO tenantDTO) {
+  private CompletableFuture<ResponseEntity<Object>> createTenant(
+      final TenantRequest tenantRequest) {
     return RequestMapper.executeServiceMethod(
         () ->
             tenantServices
                 .withAuthentication(authenticationProvider.getCamundaAuthentication())
-                .createTenant(tenantDTO),
+                .createTenant(tenantRequest),
         ResponseMapper::toTenantCreateResponse);
   }
 
@@ -331,7 +332,7 @@ public class TenantController {
     }
   }
 
-  private ResponseEntity<MappingRuleSearchQueryResult> searchMappingRulesInTenant(
+  private ResponseEntity<MappingRuleSearchQueryResult> searchMappingRulesForTenant(
       final String tenantId, final MappingRuleQuery mappingRuleQuery) {
     try {
       final var composedMappingRuleQuery = buildMappingRuleQuery(tenantId, mappingRuleQuery);
@@ -419,12 +420,13 @@ public class TenantController {
         .build();
   }
 
-  private CompletableFuture<ResponseEntity<Object>> updateTenant(final TenantDTO tenantDTO) {
+  private CompletableFuture<ResponseEntity<Object>> updateTenant(
+      final TenantRequest tenantRequest) {
     return RequestMapper.executeServiceMethod(
         () ->
             tenantServices
                 .withAuthentication(authenticationProvider.getCamundaAuthentication())
-                .updateTenant(tenantDTO),
+                .updateTenant(tenantRequest),
         ResponseMapper::toTenantUpdateResponse);
   }
 }

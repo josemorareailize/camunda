@@ -51,6 +51,7 @@ import io.camunda.exporter.handlers.RoleCreateUpdateHandler;
 import io.camunda.exporter.handlers.RoleDeletedHandler;
 import io.camunda.exporter.handlers.RoleMemberAddedHandler;
 import io.camunda.exporter.handlers.RoleMemberRemovedHandler;
+import io.camunda.exporter.handlers.SequenceFlowDeletedHandler;
 import io.camunda.exporter.handlers.SequenceFlowHandler;
 import io.camunda.exporter.handlers.TaskCompletedMetricHandler;
 import io.camunda.exporter.handlers.TenantCreateUpdateHandler;
@@ -69,8 +70,8 @@ import io.camunda.exporter.handlers.VariableHandler;
 import io.camunda.exporter.handlers.batchoperation.BatchOperationChunkCreatedHandler;
 import io.camunda.exporter.handlers.batchoperation.BatchOperationChunkCreatedItemHandler;
 import io.camunda.exporter.handlers.batchoperation.BatchOperationCreatedHandler;
+import io.camunda.exporter.handlers.batchoperation.BatchOperationInitializedHandler;
 import io.camunda.exporter.handlers.batchoperation.BatchOperationLifecycleManagementHandler;
-import io.camunda.exporter.handlers.batchoperation.BatchOperationStartedHandler;
 import io.camunda.exporter.handlers.batchoperation.ProcessInstanceCancellationOperationHandler;
 import io.camunda.exporter.handlers.batchoperation.ProcessInstanceMigrationOperationHandler;
 import io.camunda.exporter.handlers.batchoperation.ProcessInstanceModificationOperationHandler;
@@ -98,6 +99,7 @@ import io.camunda.webapps.schema.descriptors.index.RoleIndex;
 import io.camunda.webapps.schema.descriptors.index.TasklistMetricIndex;
 import io.camunda.webapps.schema.descriptors.index.TenantIndex;
 import io.camunda.webapps.schema.descriptors.index.UsageMetricIndex;
+import io.camunda.webapps.schema.descriptors.index.UsageMetricTUIndex;
 import io.camunda.webapps.schema.descriptors.index.UserIndex;
 import io.camunda.webapps.schema.descriptors.template.BatchOperationTemplate;
 import io.camunda.webapps.schema.descriptors.template.DecisionInstanceTemplate;
@@ -232,6 +234,8 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
                 indexDescriptors.get(IncidentTemplate.class).getFullQualifiedName(), processCache),
             new SequenceFlowHandler(
                 indexDescriptors.get(SequenceFlowTemplate.class).getFullQualifiedName()),
+            new SequenceFlowDeletedHandler(
+                indexDescriptors.get(SequenceFlowTemplate.class).getFullQualifiedName()),
             new DecisionEvaluationHandler(
                 indexDescriptors.get(DecisionInstanceTemplate.class).getFullQualifiedName()),
             new ProcessHandler(
@@ -290,7 +294,7 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
             new BatchOperationCreatedHandler(
                 indexDescriptors.get(BatchOperationTemplate.class).getFullQualifiedName(),
                 batchOperationCache),
-            new BatchOperationStartedHandler(
+            new BatchOperationInitializedHandler(
                 indexDescriptors.get(BatchOperationTemplate.class).getFullQualifiedName()),
             new BatchOperationLifecycleManagementHandler(
                 indexDescriptors.get(BatchOperationTemplate.class).getFullQualifiedName()),
@@ -321,7 +325,8 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
                 indexDescriptors.get(ListViewTemplate.class).getFullQualifiedName(),
                 batchOperationCache),
             new UsageMetricHandler(
-                indexDescriptors.get(UsageMetricIndex.class).getFullQualifiedName())));
+                indexDescriptors.get(UsageMetricIndex.class).getFullQualifiedName(),
+                indexDescriptors.get(UsageMetricTUIndex.class).getFullQualifiedName())));
 
     if (configuration.getBatchOperation().isExportItemsOnCreation()) {
       // only add this handler when the items are exported on creation

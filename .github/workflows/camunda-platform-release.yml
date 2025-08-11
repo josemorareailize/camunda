@@ -186,6 +186,7 @@ jobs:
 
           # shellcheck disable=SC2016
           ./mvnw release:perform -B \
+            -DreleaseVersion="${RELEASE_VERSION}" \
             -Dgpg.passphrase="${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}" \
             -DlocalCheckout="${{ inputs.dryRun }}" \
             -DskipQaBuild=true \
@@ -729,7 +730,7 @@ jobs:
       needs.operate-docker.result == 'success' &&
       needs.tasklist-docker.result == 'success' &&
       needs.camunda-docker.result == 'success' &&
-      needs.snyk.result == 'success'
+      (needs.snyk.result == 'success' || needs.snyk.result == 'skipped')
       ) && inputs.dryRun == false }}
     timeout-minutes: 5
     permissions: {}  # GITHUB_TOKEN unused in this job

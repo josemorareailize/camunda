@@ -113,7 +113,11 @@ public class CamundaProcessTestExecutionListener implements TestExecutionListene
             runtime.getCamundaMonitoringApiAddress(), runtime.getCamundaRestApiAddress());
 
     camundaProcessTestContext =
-        new CamundaProcessTestContextImpl(runtime, createdClients::add, camundaManagementClient);
+        new CamundaProcessTestContextImpl(
+            runtime,
+            createdClients::add,
+            camundaManagementClient,
+            CamundaAssert.getAwaitBehavior());
 
     // create process coverage
     processCoverage =
@@ -236,9 +240,9 @@ public class CamundaProcessTestExecutionListener implements TestExecutionListene
 
   private void resetRuntimeClock() {
     try {
-      LOG.info("Resetting the time");
+      LOG.debug("Resetting the time");
       camundaManagementClient.resetTime();
-      LOG.info("Time reset");
+      LOG.debug("Time reset");
     } catch (final Throwable t) {
       LOG.warn(
           "Failed to reset the time, skipping. Check the runtime for details. "

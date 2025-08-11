@@ -25,8 +25,6 @@ import io.camunda.zeebe.gateway.impl.broker.request.tenant.BrokerTenantDeleteReq
 import io.camunda.zeebe.gateway.impl.broker.request.tenant.BrokerTenantUpdateRequest;
 import io.camunda.zeebe.protocol.impl.record.value.tenant.TenantRecord;
 import io.camunda.zeebe.protocol.record.value.EntityType;
-import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,7 +70,7 @@ public class TenantServices extends SearchQueryService<TenantServices, TenantQue
         brokerClient, securityContextProvider, tenantSearchClient, authentication);
   }
 
-  public CompletableFuture<TenantRecord> createTenant(final TenantDTO request) {
+  public CompletableFuture<TenantRecord> createTenant(final TenantRequest request) {
     return sendBrokerRequest(
         new BrokerTenantCreateRequest()
             .setTenantId(request.tenantId())
@@ -80,7 +78,7 @@ public class TenantServices extends SearchQueryService<TenantServices, TenantQue
             .setDescription(request.description()));
   }
 
-  public CompletableFuture<TenantRecord> updateTenant(final TenantDTO request) {
+  public CompletableFuture<TenantRecord> updateTenant(final TenantRequest request) {
     return sendBrokerRequest(
         new BrokerTenantUpdateRequest(request.tenantId())
             .setName(request.name())
@@ -105,37 +103,6 @@ public class TenantServices extends SearchQueryService<TenantServices, TenantQue
             .setEntity(request.entityType(), request.entityId()));
   }
 
-  public List<TenantEntity> getTenantsByMemberIds(
-      final Set<String> memberIds, final EntityType memberType) {
-    return search(
-            TenantQuery.of(
-                q -> q.filter(b -> b.memberIds(memberIds).childMemberType(memberType)).unlimited()))
-        .items();
-  }
-
-  public List<TenantEntity> getTenantsByUserAndGroupsAndRoles(
-      final String username, final Set<String> groupIds, final Set<String> roleIds) {
-    final var tenants = new ArrayList<>(getTenantsByMemberIds(Set.of(username), EntityType.USER));
-    final var groupTenants = getTenantsByMemberIds(groupIds, EntityType.GROUP);
-    final var roleTenants = getTenantsByMemberIds(roleIds, EntityType.ROLE);
-
-    tenants.addAll(groupTenants);
-    tenants.addAll(roleTenants);
-    return tenants.stream().distinct().toList();
-  }
-
-  public List<TenantEntity> getTenantsByMappingRulesAndGroupsAndRoles(
-      final Set<String> mappingRules, final Set<String> groupIds, final Set<String> roleIds) {
-    final var tenants =
-        new ArrayList<>(getTenantsByMemberIds(mappingRules, EntityType.MAPPING_RULE));
-    final var groupTenants = getTenantsByMemberIds(groupIds, EntityType.GROUP);
-    final var roleTenants = getTenantsByMemberIds(roleIds, EntityType.ROLE);
-
-    tenants.addAll(groupTenants);
-    tenants.addAll(roleTenants);
-    return tenants.stream().distinct().toList();
-  }
-
   public List<TenantEntity> getTenantsByMemberTypeAndMemberIds(
       final Map<EntityType, Set<String>> memberTypesToMemberIds) {
     return search(
@@ -155,12 +122,7 @@ public class TenantServices extends SearchQueryService<TenantServices, TenantQue
                 .getTenant(tenantId));
   }
 
-  public record TenantDTO(Long key, String tenantId, String name, String description)
-      implements Serializable {
-    public static TenantDTO fromEntity(final TenantEntity entity) {
-      return new TenantDTO(entity.key(), entity.tenantId(), entity.name(), entity.description());
-    }
-  }
+  public record TenantRequest(Long key, String tenantId, String name, String description) {}
 
   public record TenantMemberRequest(String tenantId, String entityId, EntityType entityType) {}
 }

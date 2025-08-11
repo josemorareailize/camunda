@@ -7,7 +7,7 @@
  */
 package io.camunda.zeebe.qa.util.cluster;
 
-import static io.camunda.application.commons.utils.DatabaseTypeUtils.PROPERTY_CAMUNDA_DATABASE_TYPE;
+import static io.camunda.spring.utils.DatabaseTypeUtils.PROPERTY_CAMUNDA_DATABASE_TYPE;
 
 import io.atomix.cluster.MemberId;
 import io.camunda.application.Profile;
@@ -15,6 +15,8 @@ import io.camunda.application.commons.CommonsModuleConfiguration;
 import io.camunda.application.commons.search.SearchEngineDatabaseConfiguration.SearchEngineConnectProperties;
 import io.camunda.application.commons.security.CamundaSecurityConfiguration.CamundaSecurityProperties;
 import io.camunda.authentication.config.AuthenticationProperties;
+import io.camunda.configuration.UnifiedConfiguration;
+import io.camunda.configuration.UnifiedConfigurationHelper;
 import io.camunda.configuration.beans.BrokerBasedProperties;
 import io.camunda.security.configuration.ConfiguredMappingRule;
 import io.camunda.security.configuration.ConfiguredUser;
@@ -43,14 +45,18 @@ import org.springframework.util.unit.DataSize;
 public final class TestStandaloneBroker extends TestSpringApplication<TestStandaloneBroker>
     implements TestGateway<TestStandaloneBroker>, TestStandaloneApplication<TestStandaloneBroker> {
   public static final String DEFAULT_MAPPING_RULE_ID = "default";
-  public static final String DEFAULT_MAPPING_CLAIM_NAME = "client_id";
-  public static final String DEFAULT_MAPPING_CLAIM_VALUE = "default";
+  public static final String DEFAULT_MAPPING_RULE_CLAIM_NAME = "client_id";
+  public static final String DEFAULT_MAPPING_RULE_CLAIM_VALUE = "default";
   private static final String RECORDING_EXPORTER_ID = "recordingExporter";
   private final BrokerBasedProperties config;
   private final CamundaSecurityProperties securityConfig;
 
   public TestStandaloneBroker() {
-    super(BrokerModuleConfiguration.class, CommonsModuleConfiguration.class);
+    super(
+        BrokerModuleConfiguration.class,
+        CommonsModuleConfiguration.class,
+        UnifiedConfigurationHelper.class,
+        UnifiedConfiguration.class);
 
     config = new BrokerBasedProperties();
 
@@ -87,7 +93,9 @@ public final class TestStandaloneBroker extends TestSpringApplication<TestStanda
         .getMappingRules()
         .add(
             new ConfiguredMappingRule(
-                DEFAULT_MAPPING_RULE_ID, DEFAULT_MAPPING_CLAIM_NAME, DEFAULT_MAPPING_CLAIM_VALUE));
+                DEFAULT_MAPPING_RULE_ID,
+                DEFAULT_MAPPING_RULE_CLAIM_NAME,
+                DEFAULT_MAPPING_RULE_CLAIM_VALUE));
     securityConfig
         .getInitialization()
         .getDefaultRoles()
@@ -320,9 +328,11 @@ public final class TestStandaloneBroker extends TestSpringApplication<TestStanda
     withProperty("logging.level.io.camunda.db.rdbms", "DEBUG");
     withProperty("logging.level.org.mybatis", "DEBUG");
     withProperty("zeebe.broker.exporters.rdbms.args.flushInterval", "PT0S");
-    withProperty("zeebe.broker.exporters.rdbms.args.defaultHistoryTTL", "PT2S");
-    withProperty("zeebe.broker.exporters.rdbms.args.minHistoryCleanupInterval", "PT2S");
-    withProperty("zeebe.broker.exporters.rdbms.args.maxHistoryCleanupInterval", "PT5S");
+    withProperty("zeebe.broker.exporters.rdbms.args.history.defaultHistoryTTL", "PT2S");
+    withProperty(
+        "zeebe.broker.exporters.rdbms.args.history.defaultBatchOperationHistoryTTL", "PT2S");
+    withProperty("zeebe.broker.exporters.rdbms.args.history.minHistoryCleanupInterval", "PT2S");
+    withProperty("zeebe.broker.exporters.rdbms.args.history.maxHistoryCleanupInterval", "PT5S");
     withExporter("rdbms", cfg -> cfg.setClassName("-"));
     return this;
   }

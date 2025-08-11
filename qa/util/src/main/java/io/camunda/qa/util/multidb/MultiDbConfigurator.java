@@ -8,7 +8,7 @@
 package io.camunda.qa.util.multidb;
 
 import static io.camunda.application.commons.search.SearchEngineDatabaseConfiguration.SearchEngineSchemaManagerProperties.CREATE_SCHEMA_PROPERTY;
-import static io.camunda.application.commons.utils.DatabaseTypeUtils.PROPERTY_CAMUNDA_DATABASE_TYPE;
+import static io.camunda.spring.utils.DatabaseTypeUtils.PROPERTY_CAMUNDA_DATABASE_TYPE;
 
 import io.camunda.exporter.CamundaExporter;
 import io.camunda.search.connect.configuration.DatabaseType;
@@ -246,12 +246,16 @@ public class MultiDbConfigurator {
     testApplication.withProperty("spring.datasource.password", "");
     testApplication.withProperty("zeebe.broker.exporters.rdbms.args.flushInterval", "PT0S");
     testApplication.withProperty(
-        "zeebe.broker.exporters.rdbms.args.defaultHistoryTTL", retentionEnabled ? "PT1S" : "PT1H");
-    testApplication.withProperty(
-        "zeebe.broker.exporters.rdbms.args.minHistoryCleanupInterval",
+        "zeebe.broker.exporters.rdbms.args.history.defaultHistoryTTL",
         retentionEnabled ? "PT1S" : "PT1H");
     testApplication.withProperty(
-        "zeebe.broker.exporters.rdbms.args.maxHistoryCleanupInterval",
+        "zeebe.broker.exporters.rdbms.args.history.defaultBatchOperationHistoryTTL",
+        retentionEnabled ? "PT1S" : "PT1H");
+    testApplication.withProperty(
+        "zeebe.broker.exporters.rdbms.args.history.minHistoryCleanupInterval",
+        retentionEnabled ? "PT1S" : "PT1H");
+    testApplication.withProperty(
+        "zeebe.broker.exporters.rdbms.args.history.maxHistoryCleanupInterval",
         retentionEnabled ? "PT5S" : "PT2H");
     testApplication.withExporter(
         "rdbms",

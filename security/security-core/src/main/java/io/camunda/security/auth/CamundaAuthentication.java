@@ -10,8 +10,10 @@ package io.camunda.security.auth;
 import static java.util.Collections.unmodifiableList;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.zeebe.auth.Authorization;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,8 +27,17 @@ public record CamundaAuthentication(
     @JsonProperty("authenticated_group_ids") List<String> authenticatedGroupIds,
     @JsonProperty("authenticated_role_ids") List<String> authenticatedRoleIds,
     @JsonProperty("authenticated_tenant_ids") List<String> authenticatedTenantIds,
-    @JsonProperty("authenticated_mapping_ids") List<String> authenticatedMappingIds,
-    @JsonProperty("claims") Map<String, Object> claims) {
+    @JsonProperty("authenticated_mapping_rule_ids") List<String> authenticatedMappingRuleIds,
+    @JsonProperty("claims") Map<String, Object> claims)
+    implements Serializable {
+
+  @JsonIgnore
+  public boolean isAnonymous() {
+    if (claims != null && claims.containsKey(Authorization.AUTHORIZED_ANONYMOUS_USER)) {
+      return ((boolean) claims.get(Authorization.AUTHORIZED_ANONYMOUS_USER));
+    }
+    return false;
+  }
 
   public static CamundaAuthentication none() {
     return of(b -> b);
@@ -47,7 +58,7 @@ public record CamundaAuthentication(
     private final List<String> groupIds = new ArrayList<>();
     private final List<String> roleIds = new ArrayList<>();
     private final List<String> tenants = new ArrayList<>();
-    private final List<String> mappings = new ArrayList<>();
+    private final List<String> mappingRules = new ArrayList<>();
     private Map<String, Object> claims;
 
     public Builder user(final String value) {
@@ -93,13 +104,13 @@ public record CamundaAuthentication(
       return this;
     }
 
-    public Builder mapping(final String mapping) {
-      return mapping(Collections.singletonList(mapping));
+    public Builder mappingRule(final String mappingRule) {
+      return mappingRule(Collections.singletonList(mappingRule));
     }
 
-    public Builder mapping(final List<String> values) {
+    public Builder mappingRule(final List<String> values) {
       if (values != null) {
-        mappings.addAll(values);
+        mappingRules.addAll(values);
       }
       return this;
     }
@@ -116,7 +127,7 @@ public record CamundaAuthentication(
           unmodifiableList(groupIds),
           unmodifiableList(roleIds),
           unmodifiableList(tenants),
-          unmodifiableList(mappings),
+          unmodifiableList(mappingRules),
           claims);
     }
   }

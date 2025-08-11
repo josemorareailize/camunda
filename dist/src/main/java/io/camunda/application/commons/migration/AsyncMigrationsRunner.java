@@ -7,6 +7,8 @@
  */
 package io.camunda.application.commons.migration;
 
+import io.camunda.migration.api.MigrationException;
+import io.camunda.migration.api.MigrationTimeoutException;
 import io.camunda.migration.api.Migrator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -58,7 +60,7 @@ public class AsyncMigrationsRunner implements ApplicationRunner {
 
   private void startMigrators(final ApplicationArguments args) throws Exception {
     final Exception migrationsExceptions = new Exception("migration failed");
-    boolean migrationFailed = false;
+    boolean migrationSucceeded = true;
     try (final var executor =
         Executors.newFixedThreadPool(
             migrators.size(), new CustomizableThreadFactory("migration-"))) {
@@ -67,19 +69,26 @@ public class AsyncMigrationsRunner implements ApplicationRunner {
         try {
           result.get();
         } catch (final ExecutionException e) {
-          migrationFailed = true;
+          migrationSucceeded = !shouldFailMigration(e.getCause());
           LOG.error("Migrator failed", e.getCause());
           migrationsExceptions.addSuppressed(e.getCause());
         }
       }
     }
 
-    eventPublisher.publishEvent(new ProcessMigrationFinishedEvent(migrationFailed));
+    eventPublisher.publishEvent(new ProcessMigrationFinishedEvent(migrationSucceeded));
 
     if (migrationsExceptions.getSuppressed().length > 0) {
       throw migrationsExceptions;
     }
     LOG.info("All migration tasks completed");
+  }
+
+  private boolean shouldFailMigration(final Throwable e) {
+    if (e instanceof final MigrationException migrationException) {
+      return !(migrationException.getCause() instanceof MigrationTimeoutException);
+    }
+    return true;
   }
 
   public static class ProcessMigrationFinishedEvent extends MigrationFinishedEvent {

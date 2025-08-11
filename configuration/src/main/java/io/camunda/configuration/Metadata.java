@@ -7,12 +7,21 @@
  */
 package io.camunda.configuration;
 
-import io.camunda.configuration.UnifiedConfigurationHelper.BackwardsCompatibilityMode;
+import static io.camunda.configuration.UnifiedConfigurationHelper.BackwardsCompatibilityMode.SUPPORTED;
+
 import io.camunda.zeebe.dynamic.config.gossip.ClusterConfigurationGossiperConfig;
 import java.time.Duration;
+import java.util.Set;
 
 public class Metadata {
-  private static final String PREFIX = "camunda.cluster.metadata.";
+  private static final String PREFIX = "camunda.cluster.metadata";
+
+  private static final Set<String> LEGACY_SYNC_DELAY_PROPERTIES =
+      Set.of("zeebe.broker.cluster.configManager.gossip.syncDelay");
+  private static final Set<String> LEGACY_SYNC_REQUEST_TIMEOUT_PROPERTIES =
+      Set.of("zeebe.broker.cluster.configManager.gossip.syncRequestTimeout");
+  private static final Set<String> LEGACY_GOSSIP_FANOUT_PROPERTIES =
+      Set.of("zeebe.broker.cluster.configManager.gossip.gossipFanout");
 
   /**
    * The delay between two sync requests in the ClusterConfigurationManager. A sync request is sent
@@ -29,7 +38,7 @@ public class Metadata {
 
   public Duration getSyncDelay() {
     return UnifiedConfigurationHelper.validateLegacyConfiguration(
-        PREFIX + "sync-delay", syncDelay, Duration.class, BackwardsCompatibilityMode.SUPPORTED);
+        PREFIX + ".sync-delay", syncDelay, Duration.class, SUPPORTED, LEGACY_SYNC_DELAY_PROPERTIES);
   }
 
   public void setSyncDelay(final Duration syncDelay) {
@@ -38,10 +47,11 @@ public class Metadata {
 
   public Duration getSyncRequestTimeout() {
     return UnifiedConfigurationHelper.validateLegacyConfiguration(
-        PREFIX + "sync-request-timeout",
+        PREFIX + ".sync-request-timeout",
         syncRequestTimeout,
         Duration.class,
-        BackwardsCompatibilityMode.SUPPORTED);
+        SUPPORTED,
+        LEGACY_SYNC_REQUEST_TIMEOUT_PROPERTIES);
   }
 
   public void setSyncRequestTimeout(final Duration syncRequestTimeout) {
@@ -50,10 +60,11 @@ public class Metadata {
 
   public int getGossipFanout() {
     return UnifiedConfigurationHelper.validateLegacyConfiguration(
-        PREFIX + "gossip-fanout",
+        PREFIX + ".gossip-fanout",
         gossipFanout,
         Integer.class,
-        BackwardsCompatibilityMode.SUPPORTED);
+        SUPPORTED,
+        LEGACY_GOSSIP_FANOUT_PROPERTIES);
   }
 
   public void setGossipFanout(final Integer gossipFanout) {

@@ -68,9 +68,11 @@ public final class TestSupport {
       case BATCH_OPERATION_EXECUTION -> config.batchOperationExecution = value;
       case BATCH_OPERATION_LIFECYCLE_MANAGEMENT -> config.batchOperationLifecycleManagement = value;
       case BATCH_OPERATION_PARTITION_LIFECYCLE -> config.batchOperationPartitionLifecycle = value;
+      case BATCH_OPERATION_INITIALIZATION -> config.batchOperationInitialization = value;
       case AD_HOC_SUB_PROCESS_INSTRUCTION -> config.adHocSubProcessInstruction = value;
       case ASYNC_REQUEST -> config.asyncRequest = value;
       case USAGE_METRIC -> config.usageMetrics = value;
+      case RUNTIME_INSTRUCTION -> config.runtimeInstruction = value;
       default ->
           throw new IllegalArgumentException(
               "No known indexing configuration option for value type " + valueType);
@@ -122,9 +124,11 @@ public final class TestSupport {
       case BATCH_OPERATION_EXECUTION -> config.batchOperationExecution = value;
       case BATCH_OPERATION_LIFECYCLE_MANAGEMENT -> config.batchOperationLifecycleManagement = value;
       case BATCH_OPERATION_PARTITION_LIFECYCLE -> config.batchOperationPartitionLifecycle = value;
+      case BATCH_OPERATION_INITIALIZATION -> config.batchOperationInitialization = value;
       case AD_HOC_SUB_PROCESS_INSTRUCTION -> config.adHocSubProcessInstruction = value;
       case ASYNC_REQUEST -> config.asyncRequest = value;
       case USAGE_METRIC -> config.usageMetrics = value;
+      case RUNTIME_INSTRUCTION -> config.runtimeInstruction = value;
       default ->
           throw new IllegalArgumentException(
               "No known indexing configuration option for value type " + valueType);
@@ -171,7 +175,8 @@ public final class TestSupport {
             ValueType.GROUP,
             ValueType.MAPPING_RULE,
             ValueType.IDENTITY_SETUP,
-            ValueType.RESOURCE);
+            ValueType.RESOURCE,
+            ValueType.MULTI_INSTANCE);
     return EnumSet.complementOf(excludedValueTypes).stream();
   }
 }

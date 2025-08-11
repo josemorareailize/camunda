@@ -110,6 +110,10 @@ public class OpensearchExporter implements Exporter {
   public void export(final Record<?> record) {
 
     if (!shouldExportRecord(record)) {
+      // ignore the record but still update the last exported position
+      // so that we don't block compaction. Don't update the controller yet, this needs to be done
+      // on the next flush.
+      lastPosition = record.getPosition();
       return;
     }
 
@@ -175,6 +179,12 @@ public class OpensearchExporter implements Exporter {
       throw new ExporterException(
           String.format(
               "Opensearch numberOfReplicas must be >= 0. Current value: %d", numberOfReplicas));
+    }
+
+    final int priority = configuration.index.getPriority();
+    if (priority < 0) {
+      throw new ExporterException(
+          "Opensearch index template priority must be >= 0. Current value: %d".formatted(priority));
     }
   }
 

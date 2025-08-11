@@ -15,7 +15,7 @@
  */
 package io.camunda.client.api.command;
 
-import io.camunda.client.protocol.rest.JobResult.TypeEnum;
+import io.camunda.client.api.command.enums.JobResultType;
 
 public interface CompleteJobResult {
 
@@ -26,5 +26,5 @@ public interface CompleteJobResult {
    *
    * @return the type of the job result
    */
-  TypeEnum getType();
+  JobResultType getType();
 }

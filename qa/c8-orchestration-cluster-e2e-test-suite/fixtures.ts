@@ -14,6 +14,8 @@ import {LoginPage} from '@pages/LoginPage';
 import {OperateProcessesPage} from '@pages/OperateProcessesPage';
 import {OperateProcessInstancePage} from '@pages/OperateProcessInstancePage';
 import {OperateFiltersPanelPage} from '@pages/OperateFiltersPanelPage';
+import {OperateDashboardPage} from '@pages/OperateDashboardPage';
+import {OperateDiagramPage} from '@pages/OperateDiagramPage';
 import {TaskDetailsPage} from '@pages/TaskDetailsPage';
 import {TasklistHeader} from '@pages/TasklistHeader';
 import {TasklistProcessesPage} from '@pages/TasklistProcessesPage';
@@ -22,34 +24,38 @@ import {IdentityHeader} from '@pages/IdentityHeader';
 import {IdentityAuthorizationsPage} from '@pages/IdentityAuthorizationsPage';
 import {IdentityGroupsPage} from '@pages/IdentityGroupsPage';
 import {IdentityUsersPage} from '@pages/IdentityUsersPage';
-import {IdentityMappingsPage} from '@pages/IdentityMappingsPage';
+import {IdentityMappingRulesPage} from '@pages/IdentityMappingRulesPage';
 import {IdentityRolesPage} from '@pages/IdentityRolesPage';
 import {IdentityTenantsPage} from '@pages/IdentityTenantsPage';
 import {IdentityRolesDetailsPage} from '@pages/IdentityRolesDetailsPage';
+import {AccessDeniedPage} from '@pages/AccessDeniedPage';
 
 import {sleep} from 'utils/sleep';
 
 type PlaywrightFixtures = {
   makeAxeBuilder: () => AxeBuilder;
-  resetData: () => Promise<void>;
   operateHomePage: OperateHomePage;
-  operateFiltersPanelPage: OperateFiltersPanelPage;
   loginPage: LoginPage;
   taskPanelPage: TaskPanelPage;
   operateProcessesPage: OperateProcessesPage;
   operateProcessInstancePage: OperateProcessInstancePage;
+  operateFiltersPanelPage: OperateFiltersPanelPage;
+  operateDashboardPage: OperateDashboardPage;
+  operateDiagramPage: OperateDiagramPage;
   taskDetailsPage: TaskDetailsPage;
   tasklistHeader: TasklistHeader;
   tasklistProcessesPage: TasklistProcessesPage;
+  resetData: () => Promise<void>;
   publicFormsPage: PublicFormsPage;
   identityHeader: IdentityHeader;
-  identityAuthorizationsPage: IdentityAuthorizationsPage;
-  identityGroupsPage: IdentityGroupsPage;
+  identityMappingRulesPage: IdentityMappingRulesPage;
   identityUsersPage: IdentityUsersPage;
-  identityMappingsPage: IdentityMappingsPage;
+  identityGroupsPage: IdentityGroupsPage;
+  identityAuthorizationsPage: IdentityAuthorizationsPage;
   identityRolesPage: IdentityRolesPage;
   identityTenantsPage: IdentityTenantsPage;
   identityRolesDetailsPage: IdentityRolesDetailsPage;
+  accessDeniedPage: AccessDeniedPage;
 };
 
 const test = base.extend<PlaywrightFixtures>({
@@ -67,6 +73,12 @@ const test = base.extend<PlaywrightFixtures>({
   },
   operateHomePage: async ({page}, use) => {
     await use(new OperateHomePage(page));
+  },
+  operateDashboardPage: async ({page}, use) => {
+    await use(new OperateDashboardPage(page));
+  },
+  operateDiagramPage: async ({page}, use) => {
+    await use(new OperateDiagramPage(page));
   },
   loginPage: async ({page}, use) => {
     await use(new LoginPage(page));
@@ -124,8 +136,8 @@ const test = base.extend<PlaywrightFixtures>({
   identityHeader: async ({page}, use) => {
     await use(new IdentityHeader(page));
   },
-  identityMappingsPage: async ({page}, use) => {
-    await use(new IdentityMappingsPage(page));
+  identityMappingRulesPage: async ({page}, use) => {
+    await use(new IdentityMappingRulesPage(page));
   },
 
   identityUsersPage: async ({page}, use) => {
@@ -150,6 +162,10 @@ const test = base.extend<PlaywrightFixtures>({
 
   identityRolesDetailsPage: async ({page}, use) => {
     await use(new IdentityRolesDetailsPage(page));
+  },
+
+  accessDeniedPage: async ({page}, use) => {
+    await use(new AccessDeniedPage(page));
   },
 });
 

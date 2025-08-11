@@ -25,6 +25,7 @@ import io.camunda.zeebe.protocol.record.RejectionType;
 import io.camunda.zeebe.protocol.record.intent.AuthorizationIntent;
 import io.camunda.zeebe.protocol.record.intent.UserIntent;
 import io.camunda.zeebe.protocol.record.value.AuthorizationOwnerType;
+import io.camunda.zeebe.protocol.record.value.AuthorizationResourceMatcher;
 import io.camunda.zeebe.protocol.record.value.AuthorizationResourceType;
 import io.camunda.zeebe.protocol.record.value.PermissionType;
 import io.camunda.zeebe.stream.api.records.TypedRecord;
@@ -119,8 +120,9 @@ public class UserCreateProcessor implements DistributedTypedRecordProcessor<User
             .setOwnerId(username)
             .setOwnerType(AuthorizationOwnerType.USER)
             .setResourceType(AuthorizationResourceType.USER)
+            .setResourceMatcher(AuthorizationResourceMatcher.ID)
             .setResourceId(username)
-            .setPermissionTypes(Set.of(PermissionType.READ, PermissionType.UPDATE));
+            .setPermissionTypes(Set.of(PermissionType.READ));
 
     commandWriter.appendFollowUpCommand(key, AuthorizationIntent.CREATE, authorizationRecord);
   }

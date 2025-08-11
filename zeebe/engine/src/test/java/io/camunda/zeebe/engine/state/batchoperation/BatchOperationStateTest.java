@@ -192,14 +192,34 @@ public class BatchOperationStateTest {
     state.create(batchOperationKey, batchRecord);
 
     // when
-    state.start(batchOperationKey);
+    state.transitionToInitialized(batchOperationKey);
 
     // then
     assertThat(state.getNextPendingBatchOperation()).isEmpty();
 
     // and should have status STARTED
     final var persistedBatchOperation = state.get(batchOperationKey).get();
-    assertThat(persistedBatchOperation.getStatus()).isEqualTo(BatchOperationStatus.STARTED);
+    assertThat(persistedBatchOperation.getStatus()).isEqualTo(BatchOperationStatus.INITIALIZED);
+  }
+
+  @Test
+  void batchShouldBePendingWhenInitializationContinues() {
+    // given
+    final var batchOperationKey = 1L;
+    final var batchRecord =
+        new BatchOperationCreationRecord()
+            .setBatchOperationKey(batchOperationKey)
+            .setBatchOperationType(BatchOperationType.CANCEL_PROCESS_INSTANCE);
+    state.create(batchOperationKey, batchRecord);
+    state.transitionToInitialized(1L);
+
+    // when
+    state.continueInitialization(batchOperationKey, "123", 100);
+
+    // then
+    assertThat(state.getNextPendingBatchOperation().get().getKey()).isEqualTo(batchOperationKey);
+    assertThat(state.get(1).get().getInitializationSearchCursor()).isEqualTo("123");
+    assertThat(state.get(1).get().getInitializationSearchQueryPageSize()).isEqualTo(100);
   }
 
   @Test
@@ -213,7 +233,7 @@ public class BatchOperationStateTest {
     state.create(batchOperationKey, batchRecord);
 
     // when
-    state.start(batchOperationKey);
+    state.transitionToInitialized(batchOperationKey);
 
     // then
     final var pendingKeys = new ArrayList<>();
@@ -542,7 +562,7 @@ public class BatchOperationStateTest {
             .setBatchOperationKey(batchOperationKey)
             .setBatchOperationType(BatchOperationType.CANCEL_PROCESS_INSTANCE);
     state.create(batchOperationKey, batchRecord);
-    state.start(batchOperationKey);
+    state.transitionToInitialized(batchOperationKey);
     state.suspend(batchOperationKey);
 
     // when
@@ -551,7 +571,8 @@ public class BatchOperationStateTest {
     // then
     final var persistedBatchOperation = state.get(batchOperationKey);
     assertThat(persistedBatchOperation).isNotEmpty();
-    assertThat(persistedBatchOperation.get().getStatus()).isEqualTo(BatchOperationStatus.STARTED);
+    assertThat(persistedBatchOperation.get().getStatus())
+        .isEqualTo(BatchOperationStatus.INITIALIZED);
   }
 
   @Test
@@ -563,7 +584,7 @@ public class BatchOperationStateTest {
             .setBatchOperationKey(batchOperationKey)
             .setBatchOperationType(BatchOperationType.CANCEL_PROCESS_INSTANCE);
     state.create(batchOperationKey, batchRecord);
-    state.start(batchOperationKey);
+    state.transitionToInitialized(batchOperationKey);
     state.suspend(batchOperationKey);
 
     // when

@@ -63,8 +63,8 @@ import io.camunda.service.ResourceServices.ResourceDeletionRequest;
 import io.camunda.service.RoleServices.CreateRoleRequest;
 import io.camunda.service.RoleServices.RoleMemberRequest;
 import io.camunda.service.RoleServices.UpdateRoleRequest;
-import io.camunda.service.TenantServices.TenantDTO;
 import io.camunda.service.TenantServices.TenantMemberRequest;
+import io.camunda.service.TenantServices.TenantRequest;
 import io.camunda.service.UserServices.UserDTO;
 import io.camunda.zeebe.gateway.protocol.rest.AdHocSubProcessActivateActivitiesInstruction;
 import io.camunda.zeebe.gateway.protocol.rest.AuthorizationRequest;
@@ -498,12 +498,12 @@ public class RequestMapper {
   }
 
   public static Either<ProblemDetail, MappingRuleDTO> toMappingRuleDTO(
-      final String mappingId, final MappingRuleUpdateRequest request) {
+      final String mappingRuleId, final MappingRuleUpdateRequest request) {
     return getResult(
         validateMappingRuleRequest(request),
         () ->
             new MappingRuleDTO(
-                request.getClaimName(), request.getClaimValue(), request.getName(), mappingId));
+                request.getClaimName(), request.getClaimValue(), request.getName(), mappingRuleId));
   }
 
   public static <BrokerResponseT> CompletableFuture<ResponseEntity<Object>> executeServiceMethod(
@@ -829,24 +829,24 @@ public class RequestMapper {
                 tenantId));
   }
 
-  public static Either<ProblemDetail, TenantDTO> toTenantCreateDto(
+  public static Either<ProblemDetail, TenantRequest> toTenantCreateDto(
       final TenantCreateRequest tenantCreateRequest) {
     return getResult(
         TenantRequestValidator.validateTenantCreateRequest(tenantCreateRequest),
         () ->
-            new TenantDTO(
+            new TenantRequest(
                 null,
                 tenantCreateRequest.getTenantId(),
                 tenantCreateRequest.getName(),
                 tenantCreateRequest.getDescription()));
   }
 
-  public static Either<ProblemDetail, TenantDTO> toTenantUpdateDto(
+  public static Either<ProblemDetail, TenantRequest> toTenantUpdateDto(
       final String tenantId, final TenantUpdateRequest tenantUpdateRequest) {
     return getResult(
         TenantRequestValidator.validateTenantUpdateRequest(tenantUpdateRequest),
         () ->
-            new TenantDTO(
+            new TenantRequest(
                 null,
                 tenantId,
                 tenantUpdateRequest.getName(),
@@ -868,12 +868,16 @@ public class RequestMapper {
         validateAdHocSubProcessActivationRequest(request),
         () ->
             new AdHocSubProcessActivateActivitiesRequest(
-                adHocSubProcessInstanceKey,
+                Long.parseLong(adHocSubProcessInstanceKey),
                 request.getElements().stream()
                     .map(
                         element ->
-                            new AdHocSubProcessActivateActivityReference(element.getElementId()))
-                    .toList()));
+                            new AdHocSubProcessActivateActivityReference(
+                                element.getElementId(),
+                                getMapOrEmpty(element, e -> e.getVariables())))
+                    .toList(),
+                request.getCancelRemainingInstances() != null
+                    && request.getCancelRemainingInstances()));
   }
 
   private static List<ProcessInstanceModificationActivateInstruction>

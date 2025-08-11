@@ -7,8 +7,8 @@
  */
 package io.camunda.qa.util.cluster;
 
-import static io.camunda.zeebe.qa.util.cluster.TestStandaloneBroker.DEFAULT_MAPPING_CLAIM_NAME;
-import static io.camunda.zeebe.qa.util.cluster.TestStandaloneBroker.DEFAULT_MAPPING_CLAIM_VALUE;
+import static io.camunda.zeebe.qa.util.cluster.TestStandaloneBroker.DEFAULT_MAPPING_RULE_CLAIM_NAME;
+import static io.camunda.zeebe.qa.util.cluster.TestStandaloneBroker.DEFAULT_MAPPING_RULE_CLAIM_VALUE;
 import static io.camunda.zeebe.qa.util.cluster.TestStandaloneBroker.DEFAULT_MAPPING_RULE_ID;
 
 import io.atomix.cluster.MemberId;
@@ -18,6 +18,7 @@ import io.camunda.application.commons.security.CamundaSecurityConfiguration.Camu
 import io.camunda.application.initializers.WebappsConfigurationInitializer;
 import io.camunda.authentication.config.AuthenticationProperties;
 import io.camunda.configuration.UnifiedConfiguration;
+import io.camunda.configuration.UnifiedConfigurationHelper;
 import io.camunda.configuration.beanoverrides.OperatePropertiesOverride;
 import io.camunda.configuration.beanoverrides.TasklistPropertiesOverride;
 import io.camunda.configuration.beans.BrokerBasedProperties;
@@ -70,6 +71,7 @@ public final class TestCamundaApplication extends TestSpringApplication<TestCamu
         UnifiedConfiguration.class,
         TasklistPropertiesOverride.class,
         OperatePropertiesOverride.class,
+        UnifiedConfigurationHelper.class,
         // ---
         CommonsModuleConfiguration.class,
         OperateModuleConfiguration.class,
@@ -111,7 +113,9 @@ public final class TestCamundaApplication extends TestSpringApplication<TestCamu
         .getMappingRules()
         .add(
             new ConfiguredMappingRule(
-                DEFAULT_MAPPING_RULE_ID, DEFAULT_MAPPING_CLAIM_NAME, DEFAULT_MAPPING_CLAIM_VALUE));
+                DEFAULT_MAPPING_RULE_ID,
+                DEFAULT_MAPPING_RULE_CLAIM_NAME,
+                DEFAULT_MAPPING_RULE_CLAIM_VALUE));
     securityConfig
         .getInitialization()
         .getDefaultRoles()
@@ -180,10 +184,21 @@ public final class TestCamundaApplication extends TestSpringApplication<TestCamu
     return withSecurityConfig(cfg -> cfg.getAuthorizations().setEnabled(true));
   }
 
+  public TestCamundaApplication withAuthorizationsDisabled() {
+    withUnauthenticatedAccess();
+    return withSecurityConfig(cfg -> cfg.getAuthorizations().setEnabled(false));
+  }
+
   public TestCamundaApplication withMultiTenancyEnabled() {
     withAuthenticatedAccess();
     withProperty("camunda.security.multiTenancy.checksEnabled", true);
     return withSecurityConfig(cfg -> cfg.getMultiTenancy().setChecksEnabled(true));
+  }
+
+  public TestCamundaApplication withMultiTenancyDisabled() {
+    withAuthenticatedAccess();
+    withProperty("camunda.security.multiTenancy.checksEnabled", false);
+    return withSecurityConfig(cfg -> cfg.getMultiTenancy().setChecksEnabled(false));
   }
 
   @Override

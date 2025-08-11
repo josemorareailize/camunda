@@ -19,25 +19,35 @@ import static org.springframework.security.oauth2.jose.jws.SignatureAlgorithm.RS
 
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
-import io.camunda.authentication.CamundaJwtAuthenticationConverter;
 import io.camunda.authentication.CamundaUserDetailsService;
 import io.camunda.authentication.ConditionalOnAuthenticationMethod;
 import io.camunda.authentication.ConditionalOnProtectedApi;
 import io.camunda.authentication.ConditionalOnUnprotectedApi;
+import io.camunda.authentication.converter.OidcTokenAuthenticationConverter;
+import io.camunda.authentication.converter.OidcUserAuthenticationConverter;
+import io.camunda.authentication.converter.TokenClaimsConverter;
+import io.camunda.authentication.converter.UsernamePasswordAuthenticationTokenConverter;
 import io.camunda.authentication.csrf.CsrfProtectionRequestMatcher;
+import io.camunda.authentication.exception.BasicAuthenticationNotSupportedException;
 import io.camunda.authentication.filters.AdminUserCheckFilter;
 import io.camunda.authentication.filters.OAuth2RefreshTokenFilter;
 import io.camunda.authentication.filters.WebApplicationAuthorizationCheckFilter;
 import io.camunda.authentication.handler.AuthFailureHandler;
+import io.camunda.authentication.service.MembershipService;
+import io.camunda.security.auth.CamundaAuthenticationConverter;
+import io.camunda.security.auth.CamundaAuthenticationProvider;
+import io.camunda.security.auth.OidcGroupsLoader;
 import io.camunda.security.configuration.SecurityConfiguration;
 import io.camunda.security.configuration.headers.HeaderConfiguration;
 import io.camunda.security.configuration.headers.values.FrameOptionMode;
 import io.camunda.security.entity.AuthenticationMethod;
-import io.camunda.service.AuthorizationServices;
+import io.camunda.security.reader.ResourceAccessProvider;
 import io.camunda.service.GroupServices;
 import io.camunda.service.RoleServices;
 import io.camunda.service.TenantServices;
 import io.camunda.service.UserServices;
+import io.camunda.spring.utils.ConditionalOnSecondaryStorageDisabled;
+import io.camunda.spring.utils.ConditionalOnSecondaryStorageEnabled;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -326,7 +336,6 @@ public class WebSecurityConfig {
   public CookieCsrfTokenRepository cookieCsrfTokenRepository() {
     final CookieCsrfTokenRepository repository = new CookieCsrfTokenRepository();
     repository.setHeaderName(X_CSRF_TOKEN);
-    repository.setCookieCustomizer(cc -> cc.httpOnly(true).secure(true));
     repository.setCookieName(X_CSRF_TOKEN);
     return repository;
   }
@@ -388,17 +397,22 @@ public class WebSecurityConfig {
 
   @Configuration
   @ConditionalOnAuthenticationMethod(AuthenticationMethod.BASIC)
+  @ConditionalOnSecondaryStorageEnabled
   public static class BasicConfiguration {
+
+    @Bean
+    public CamundaAuthenticationConverter<Authentication> usernamePasswordAuthenticationConverter(
+        final RoleServices roleServices,
+        final GroupServices groupServices,
+        final TenantServices tenantServices) {
+      return new UsernamePasswordAuthenticationTokenConverter(
+          roleServices, groupServices, tenantServices);
+    }
+
     @Bean
     @ConditionalOnMissingBean(UserDetailsService.class)
-    public CamundaUserDetailsService camundaUserDetailsService(
-        final UserServices userServices,
-        final AuthorizationServices authorizationServices,
-        final RoleServices roleServices,
-        final TenantServices tenantServices,
-        final GroupServices groupServices) {
-      return new CamundaUserDetailsService(
-          userServices, authorizationServices, roleServices, tenantServices, groupServices);
+    public CamundaUserDetailsService camundaUserDetailsService(final UserServices userServices) {
+      return new CamundaUserDetailsService(userServices);
     }
 
     @Bean
@@ -455,6 +469,8 @@ public class WebSecurityConfig {
         final HttpSecurity httpSecurity,
         final AuthFailureHandler authFailureHandler,
         final SecurityConfiguration securityConfiguration,
+        final CamundaAuthenticationProvider authenticationProvider,
+        final ResourceAccessProvider resourceAccessProvider,
         final RoleServices roleServices,
         final CookieCsrfTokenRepository csrfTokenRepository)
         throws Exception {
@@ -498,7 +514,8 @@ public class WebSecurityConfig {
                           .authenticationEntryPoint(authFailureHandler)
                           .accessDeniedHandler(authFailureHandler))
               .addFilterAfter(
-                  new WebApplicationAuthorizationCheckFilter(securityConfiguration),
+                  new WebApplicationAuthorizationCheckFilter(
+                      securityConfiguration, authenticationProvider, resourceAccessProvider),
                   AuthorizationFilter.class)
               .addFilterBefore(
                   new AdminUserCheckFilter(securityConfiguration, roleServices),
@@ -513,11 +530,42 @@ public class WebSecurityConfig {
   @Configuration
   @ConditionalOnAuthenticationMethod(AuthenticationMethod.OIDC)
   public static class OidcConfiguration {
+
+    @Bean
+    public TokenClaimsConverter tokenClaimsConverter(
+        final SecurityConfiguration securityConfiguration,
+        final MembershipService membershipService) {
+      return new TokenClaimsConverter(securityConfiguration, membershipService);
+    }
+
+    @Bean
+    public CamundaAuthenticationConverter<Authentication> oidcTokenAuthenticationConverter(
+        final TokenClaimsConverter tokenClaimsConverter) {
+      return new OidcTokenAuthenticationConverter(tokenClaimsConverter);
+    }
+
+    @Bean
+    public CamundaAuthenticationConverter<Authentication> oidcUserAuthenticationConverter(
+        final OAuth2AuthorizedClientRepository authorizedClientRepository,
+        final JwtDecoder jwtDecoder,
+        final TokenClaimsConverter tokenClaimsConverter,
+        final HttpServletRequest request) {
+      return new OidcUserAuthenticationConverter(
+          authorizedClientRepository, jwtDecoder, tokenClaimsConverter, request);
+    }
+
     @Bean
     public ClientRegistrationRepository clientRegistrationRepository(
         final SecurityConfiguration securityConfiguration) {
       return new InMemoryClientRegistrationRepository(
           OidcClientRegistration.create(securityConfiguration.getAuthentication().getOidc()));
+    }
+
+    @Bean
+    public OidcGroupsLoader oidcGroupsLoader(final SecurityConfiguration securityConfiguration) {
+      final String groupsClaim =
+          securityConfiguration.getAuthentication().getOidc().getGroupsClaim();
+      return new OidcGroupsLoader(groupsClaim);
     }
 
     @Bean
@@ -586,7 +634,6 @@ public class WebSecurityConfig {
         final HttpSecurity httpSecurity,
         final AuthFailureHandler authFailureHandler,
         final JwtDecoder jwtDecoder,
-        final CamundaJwtAuthenticationConverter converter,
         final SecurityConfiguration securityConfiguration,
         final CookieCsrfTokenRepository csrfTokenRepository,
         final OAuth2AuthorizedClientRepository authorizedClientRepository,
@@ -614,12 +661,7 @@ public class WebSecurityConfig {
               .formLogin(AbstractHttpConfigurer::disable)
               .anonymous(AbstractHttpConfigurer::disable)
               .oauth2ResourceServer(
-                  oauth2 ->
-                      oauth2.jwt(
-                          jwtConfigurer ->
-                              jwtConfigurer
-                                  .decoder(jwtDecoder)
-                                  .jwtAuthenticationConverter(converter)))
+                  oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder)))
               .oauth2Login(AbstractHttpConfigurer::disable)
               .oidcLogout(AbstractHttpConfigurer::disable)
               .logout(AbstractHttpConfigurer::disable);
@@ -633,13 +675,15 @@ public class WebSecurityConfig {
 
     @Bean
     @Order(ORDER_WEBAPP_API)
+    @ConditionalOnSecondaryStorageEnabled
     public SecurityFilterChain oidcWebappSecurity(
         final HttpSecurity httpSecurity,
         final AuthFailureHandler authFailureHandler,
         final ClientRegistrationRepository clientRegistrationRepository,
         final JwtDecoder jwtDecoder,
-        final CamundaJwtAuthenticationConverter converter,
         final SecurityConfiguration securityConfiguration,
+        final CamundaAuthenticationProvider authenticationProvider,
+        final ResourceAccessProvider resourceAccessProvider,
         final CookieCsrfTokenRepository csrfTokenRepository,
         final OAuth2AuthorizedClientRepository authorizedClientRepository,
         final OAuth2AuthorizedClientManager authorizedClientManager)
@@ -661,12 +705,7 @@ public class WebSecurityConfig {
               .formLogin(AbstractHttpConfigurer::disable)
               .anonymous(AbstractHttpConfigurer::disable)
               .oauth2ResourceServer(
-                  oauth2 ->
-                      oauth2.jwt(
-                          jwtConfigurer ->
-                              jwtConfigurer
-                                  .decoder(jwtDecoder)
-                                  .jwtAuthenticationConverter(converter)))
+                  oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder)))
               .oauth2Login(
                   oauthLoginConfigurer -> {
                     oauthLoginConfigurer
@@ -689,7 +728,8 @@ public class WebSecurityConfig {
                           .logoutSuccessHandler(new NoContentResponseHandler())
                           .deleteCookies(SESSION_COOKIE, X_CSRF_TOKEN))
               .addFilterAfter(
-                  new WebApplicationAuthorizationCheckFilter(securityConfiguration),
+                  new WebApplicationAuthorizationCheckFilter(
+                      securityConfiguration, authenticationProvider, resourceAccessProvider),
                   AuthorizationFilter.class);
 
       applyOauth2RefreshTokenFilter(
@@ -747,6 +787,25 @@ public class WebSecurityConfig {
       }
     }
   }
+
+  /**
+   * Configuration that provides fail-fast behavior when Basic Authentication is configured but
+   * secondary storage is disabled (camunda.database.type=none). This prevents misleading security
+   * flows and provides clear error messages.
+   */
+  @Configuration
+  @ConditionalOnAuthenticationMethod(AuthenticationMethod.BASIC)
+  @ConditionalOnSecondaryStorageDisabled
+  public static class BasicAuthenticationNoDbConfiguration {
+
+    @Bean
+    public BasicAuthenticationNoDbFailFastBean basicAuthenticationNoDbFailFastBean() {
+      throw new BasicAuthenticationNotSupportedException();
+    }
+  }
+
+  /** Marker bean for Basic Auth no-db fail-fast configuration. */
+  public static class BasicAuthenticationNoDbFailFastBean {}
 
   protected static class NoContentResponseHandler
       implements AuthenticationSuccessHandler, LogoutSuccessHandler {

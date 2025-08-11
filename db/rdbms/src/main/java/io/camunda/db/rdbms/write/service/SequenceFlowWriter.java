@@ -7,8 +7,8 @@
  */
 package io.camunda.db.rdbms.write.service;
 
-import io.camunda.db.rdbms.sql.HistoryCleanupMapper;
 import io.camunda.db.rdbms.sql.HistoryCleanupMapper.CleanupHistoryDto;
+import io.camunda.db.rdbms.sql.ProcessBasedHistoryCleanupMapper;
 import io.camunda.db.rdbms.sql.SequenceFlowMapper;
 import io.camunda.db.rdbms.write.domain.SequenceFlowDbModel;
 import io.camunda.db.rdbms.write.queue.ContextType;
@@ -47,6 +47,16 @@ public class SequenceFlowWriter {
             sequenceFlow));
   }
 
+  public void delete(final SequenceFlowDbModel sequenceFlow) {
+    executionQueue.executeInQueue(
+        new QueueItem(
+            ContextType.SEQUENCE_FLOW,
+            WriteStatementType.DELETE,
+            sequenceFlow.sequenceFlowId(),
+            "io.camunda.db.rdbms.sql.SequenceFlowMapper.delete",
+            sequenceFlow));
+  }
+
   public void scheduleForHistoryCleanup(
       final Long processInstanceKey, final OffsetDateTime historyCleanupDate) {
     executionQueue.executeInQueue(
@@ -55,7 +65,7 @@ public class SequenceFlowWriter {
             WriteStatementType.UPDATE,
             processInstanceKey,
             "io.camunda.db.rdbms.sql.SequenceFlowMapper.updateHistoryCleanupDate",
-            new HistoryCleanupMapper.UpdateHistoryCleanupDateDto.Builder()
+            new ProcessBasedHistoryCleanupMapper.UpdateHistoryCleanupDateDto.Builder()
                 .processInstanceKey(processInstanceKey)
                 .historyCleanupDate(historyCleanupDate)
                 .build()));

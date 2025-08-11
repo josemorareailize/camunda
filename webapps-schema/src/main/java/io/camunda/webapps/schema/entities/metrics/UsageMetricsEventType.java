@@ -9,5 +9,6 @@ package io.camunda.webapps.schema.entities.metrics;
 
 public enum UsageMetricsEventType {
   RPI,
-  EDI
+  EDI,
+  TU
 }

@@ -92,12 +92,12 @@ public class DbBatchOperationState implements MutableBatchOperationState {
   }
 
   @Override
-  public void start(final long batchOperationKey) {
+  public void transitionToInitialized(final long batchOperationKey) {
     LOGGER.trace("Starting batch operation with key {}", batchOperationKey);
     batchKey.wrapLong(batchOperationKey);
     final var batchOperation = get(batchOperationKey);
     if (batchOperation.isPresent()) {
-      batchOperation.get().setStatus(BatchOperationStatus.STARTED);
+      batchOperation.get().setStatus(BatchOperationStatus.INITIALIZED);
       batchOperation.get().markAsInitialized();
       batchOperationColumnFamily.update(batchKey, batchOperation.get());
 
@@ -105,6 +105,28 @@ public class DbBatchOperationState implements MutableBatchOperationState {
       pendingBatchOperationColumnFamily.deleteIfExists(batchKey);
     } else {
       LOGGER.error("Batch operation with key {} not found, cannot start it.", batchOperationKey);
+    }
+  }
+
+  @Override
+  public void continueInitialization(
+      final long batchOperationKey,
+      final String searchResultCursor,
+      final int searchQueryPageSize) {
+    LOGGER.trace("Setting the next init step for batch operation with key {}", batchOperationKey);
+    batchKey.wrapLong(batchOperationKey);
+    final var batchOperation = get(batchOperationKey);
+    if (batchOperation.isPresent()) {
+      batchOperation.get().setInitializationSearchCursor(searchResultCursor);
+      batchOperation.get().setInitializationSearchQueryPageSize(searchQueryPageSize);
+      batchOperationColumnFamily.update(batchKey, batchOperation.get());
+
+      // again add to pending batch operations, since it is not yet started and needs at least one
+      // more initialization step
+      pendingBatchOperationColumnFamily.upsert(batchKey, DbNil.INSTANCE);
+    } else {
+      LOGGER.error(
+          "Batch operation with key {} not found, cannot set next init step.", batchOperationKey);
     }
   }
 
@@ -215,7 +237,7 @@ public class DbBatchOperationState implements MutableBatchOperationState {
     // Set status to STARTED
     final var batch = batchOperationColumnFamily.get(batchKey);
     batch.setStatus(
-        batch.isInitialized() ? BatchOperationStatus.STARTED : BatchOperationStatus.CREATED);
+        batch.isInitialized() ? BatchOperationStatus.INITIALIZED : BatchOperationStatus.CREATED);
     batchOperationColumnFamily.update(batchKey, batch);
   }
 

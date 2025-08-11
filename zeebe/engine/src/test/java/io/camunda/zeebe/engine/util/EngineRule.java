@@ -77,6 +77,7 @@ import io.camunda.zeebe.stream.impl.StreamProcessorMode;
 import io.camunda.zeebe.test.util.TestUtil;
 import io.camunda.zeebe.test.util.record.RecordingExporter;
 import io.camunda.zeebe.test.util.record.RecordingExporterTestWatcher;
+import io.camunda.zeebe.test.util.record.RecordingExporterTestWatcher.ResetMode;
 import io.camunda.zeebe.util.FeatureFlags;
 import io.camunda.zeebe.util.buffer.BufferUtil;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -84,6 +85,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,8 +109,12 @@ public final class EngineRule extends ExternalResource {
   private final StreamProcessorRule environmentRule;
   private final RecordingExporterTestWatcher recordingExporterTestWatcher =
       new RecordingExporterTestWatcher();
+  private ResetRecordingExporterTestWatcherMode resetRecordingExporterTestWatcherMode =
+      ResetRecordingExporterTestWatcherMode.BEFORE_EACH_TEST;
   private final int partitionCount;
   private boolean awaitIdentitySetup = false;
+  private ResetRecordingExporterMode awaitIdentitySetupResetMode =
+      ResetRecordingExporterMode.AFTER_IDENTITY_SETUP;
   private boolean initializeRoutingState = true;
 
   private Consumer<TypedRecord> onProcessedCallback = record -> {};
@@ -157,9 +163,23 @@ public final class EngineRule extends ExternalResource {
 
   @Override
   protected void before() {
+    if (EnumSet.of(
+            ResetRecordingExporterTestWatcherMode.ONLY_BEFORE_AND_AFTER_ALL_TESTS,
+            ResetRecordingExporterTestWatcherMode.BEFORE_ALL_TESTS_AND_AFTER_EACH_TEST)
+        .contains(resetRecordingExporterTestWatcherMode)) {
+      RecordingExporter.reset();
+    }
     start();
     if (awaitIdentitySetup) {
       awaitIdentitySetup();
+    }
+  }
+
+  @Override
+  protected void after() {
+    if (resetRecordingExporterTestWatcherMode
+        == ResetRecordingExporterTestWatcherMode.ONLY_BEFORE_AND_AFTER_ALL_TESTS) {
+      RecordingExporter.reset();
     }
   }
 
@@ -179,6 +199,30 @@ public final class EngineRule extends ExternalResource {
     awaitIdentitySetup = true;
     withFeatureFlags(ff -> ff.setEnableIdentitySetup(true));
     return this;
+  }
+
+  public EngineRule withIdentitySetup(
+      final ResetRecordingExporterMode awaitIdentitySetupResetMode) {
+    if (awaitIdentitySetupResetMode == ResetRecordingExporterMode.NO_RESET_AFTER_IDENTITY_SETUP
+        && resetRecordingExporterTestWatcherMode
+            == ResetRecordingExporterTestWatcherMode.BEFORE_EACH_TEST) {
+      throw new IllegalStateException(
+          """
+          Expected to not reset RecordingExporter after identity setup, \
+          but the RecordingExporterTestWatcher is configured to reset before each test. \
+          This would mean that the identity setup is still not included in the recording exporter. \
+          If you want to include the identity setup in the recording exporter, please call \
+          .withResetRecordingExporterTestWatcherMode on the EngineRule to change the reset mode, \
+          and choose one of the following modes:
+          - ResetRecordingExporterTestWatcherMode.ONLY_BEFORE_AND_AFTER_ALL_TESTS
+          - ResetRecordingExporterTestWatcherMode.BEFORE_ALL_TESTS_AND_AFTER_EACH_TEST
+
+          Additionally, ensure that the RecordingExporterTestWatcher is not explicitly set up in the
+          test class.
+          """);
+    }
+    this.awaitIdentitySetupResetMode = awaitIdentitySetupResetMode;
+    return withIdentitySetup();
   }
 
   public EngineRule withJobStreamer(final JobStreamer jobStreamer) {
@@ -230,6 +274,26 @@ public final class EngineRule extends ExternalResource {
     initializeRoutingState = false;
     initialRoutingState = Optional.of(routingInfo);
     return this;
+  }
+
+  public EngineRule withResetRecordingExporterTestWatcherMode(
+      final ResetRecordingExporterTestWatcherMode resetMode) {
+    resetRecordingExporterTestWatcherMode = resetMode;
+    return switch (resetMode) {
+      case ONLY_BEFORE_AND_AFTER_ALL_TESTS -> {
+        // so, never on individual tests
+        recordingExporterTestWatcher.withResetMode(ResetMode.NEVER);
+        yield this;
+      }
+      case BEFORE_EACH_TEST -> {
+        recordingExporterTestWatcher.withResetMode(ResetMode.ON_STARTING);
+        yield this;
+      }
+      case BEFORE_ALL_TESTS_AND_AFTER_EACH_TEST -> {
+        recordingExporterTestWatcher.withResetMode(ResetMode.ON_FINISHED);
+        yield this;
+      }
+    };
   }
 
   private void startProcessors(final StreamProcessorMode mode, final boolean awaitOpening) {
@@ -580,7 +644,10 @@ public final class EngineRule extends ExternalResource {
           .await();
     }
 
-    RecordingExporter.reset();
+    if (awaitIdentitySetupResetMode == ResetRecordingExporterMode.AFTER_IDENTITY_SETUP) {
+      // reset the RecordingExporter to avoid that the identity setup is included in the test
+      RecordingExporter.reset();
+    }
   }
 
   public void awaitProcessingOf(final Record<?> record) {
@@ -661,5 +728,16 @@ public final class EngineRule extends ExternalResource {
     public DirectBuffer getDirectBuffer() {
       return genericBuffer;
     }
+  }
+
+  public enum ResetRecordingExporterTestWatcherMode {
+    ONLY_BEFORE_AND_AFTER_ALL_TESTS,
+    BEFORE_ALL_TESTS_AND_AFTER_EACH_TEST,
+    BEFORE_EACH_TEST
+  }
+
+  public enum ResetRecordingExporterMode {
+    AFTER_IDENTITY_SETUP,
+    NO_RESET_AFTER_IDENTITY_SETUP
   }
 }

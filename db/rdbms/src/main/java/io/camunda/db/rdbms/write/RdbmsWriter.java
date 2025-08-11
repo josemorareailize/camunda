@@ -9,6 +9,7 @@ package io.camunda.db.rdbms.write;
 
 import io.camunda.db.rdbms.config.VendorDatabaseProperties;
 import io.camunda.db.rdbms.read.service.BatchOperationDbReader;
+import io.camunda.db.rdbms.sql.BatchOperationMapper;
 import io.camunda.db.rdbms.sql.DecisionInstanceMapper;
 import io.camunda.db.rdbms.sql.FlowNodeInstanceMapper;
 import io.camunda.db.rdbms.sql.IncidentMapper;
@@ -92,13 +93,16 @@ public class RdbmsWriter {
       final JobMapper jobMapper,
       final SequenceFlowMapper sequenceFlowMapper,
       final UsageMetricMapper usageMetricMapper,
-      final UsageMetricTUMapper usageMetricTUMapper) {
+      final UsageMetricTUMapper usageMetricTUMapper,
+      final BatchOperationMapper batchOperationMapper) {
     this.executionQueue = executionQueue;
     this.exporterPositionService = exporterPositionService;
     rdbmsPurger = new RdbmsPurger(purgeMapper, vendorDatabaseProperties);
     authorizationWriter = new AuthorizationWriter(executionQueue);
     decisionDefinitionWriter = new DecisionDefinitionWriter(executionQueue);
-    decisionInstanceWriter = new DecisionInstanceWriter(decisionInstanceMapper, executionQueue);
+    decisionInstanceWriter =
+        new DecisionInstanceWriter(
+            decisionInstanceMapper, executionQueue, vendorDatabaseProperties);
     decisionRequirementsWriter = new DecisionRequirementsWriter(executionQueue);
     flowNodeInstanceWriter = new FlowNodeInstanceWriter(executionQueue, flowNodeInstanceMapper);
     groupWriter = new GroupWriter(executionQueue);
@@ -112,7 +116,13 @@ public class RdbmsWriter {
     userTaskWriter = new UserTaskWriter(executionQueue, userTaskMapper);
     formWriter = new FormWriter(executionQueue);
     mappingRuleWriter = new MappingRuleWriter(executionQueue);
-    batchOperationWriter = new BatchOperationWriter(batchOperationReader, executionQueue, config);
+    batchOperationWriter =
+        new BatchOperationWriter(
+            batchOperationReader,
+            executionQueue,
+            batchOperationMapper,
+            config,
+            vendorDatabaseProperties);
     jobWriter = new JobWriter(executionQueue, jobMapper, vendorDatabaseProperties);
     sequenceFlowWriter = new SequenceFlowWriter(executionQueue, sequenceFlowMapper);
     usageMetricWriter = new UsageMetricWriter(executionQueue, usageMetricMapper);
@@ -129,6 +139,7 @@ public class RdbmsWriter {
             decisionInstanceWriter,
             jobWriter,
             sequenceFlowWriter,
+            batchOperationWriter,
             metrics);
   }
 

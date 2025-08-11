@@ -21,6 +21,7 @@ import io.camunda.zeebe.protocol.impl.record.value.tenant.TenantRecord;
 import io.camunda.zeebe.protocol.impl.record.value.user.UserRecord;
 import io.camunda.zeebe.protocol.record.intent.IdentitySetupIntent;
 import io.camunda.zeebe.protocol.record.value.AuthorizationOwnerType;
+import io.camunda.zeebe.protocol.record.value.AuthorizationResourceMatcher;
 import io.camunda.zeebe.protocol.record.value.AuthorizationResourceType;
 import io.camunda.zeebe.protocol.record.value.DefaultRole;
 import io.camunda.zeebe.protocol.record.value.EntityType;
@@ -99,13 +100,13 @@ public final class IdentitySetupInitializer implements StreamProcessorLifecycleA
     initialization
         .getMappingRules()
         .forEach(
-            mapping ->
+            mappingRule ->
                 setupRecord.addMappingRule(
                     new MappingRuleRecord()
-                        .setMappingRuleId(mapping.getMappingRuleId())
-                        .setClaimName(mapping.getClaimName())
-                        .setClaimValue(mapping.getClaimValue())
-                        .setName(mapping.getMappingRuleId())));
+                        .setMappingRuleId(mappingRule.getMappingRuleId())
+                        .setClaimName(mappingRule.getClaimName())
+                        .setClaimValue(mappingRule.getClaimValue())
+                        .setName(mappingRule.getMappingRuleId())));
 
     setupRecord.setDefaultTenant(
         new TenantRecord().setTenantId(DEFAULT_TENANT_ID).setName(DEFAULT_TENANT_NAME));
@@ -122,10 +123,10 @@ public final class IdentitySetupInitializer implements StreamProcessorLifecycleA
       final var roleId = assignmentsForRole.getKey();
       for (final var assignmentsForEntityType : assignmentsForRole.getValue().entrySet()) {
         final var entityType =
-            switch (assignmentsForEntityType.getKey()) {
+            switch (assignmentsForEntityType.getKey().toLowerCase()) {
               case "users" -> EntityType.USER;
               case "clients" -> EntityType.CLIENT;
-              case "mappingRules" -> EntityType.MAPPING_RULE;
+              case "mappingrules" -> EntityType.MAPPING_RULE;
               case "groups" -> EntityType.GROUP;
               case "roles" -> EntityType.ROLE;
               default ->
@@ -161,6 +162,7 @@ public final class IdentitySetupInitializer implements StreamProcessorLifecycleA
               .setOwnerType(AuthorizationOwnerType.ROLE)
               .setOwnerId(readOnlyAdminRoleId)
               .setResourceType(resourceType)
+              .setResourceMatcher(AuthorizationResourceMatcher.ANY)
               .setResourceId(WILDCARD_PERMISSION)
               .setPermissionTypes(readBasedPermissions));
     }
@@ -180,6 +182,7 @@ public final class IdentitySetupInitializer implements StreamProcessorLifecycleA
               .setOwnerType(AuthorizationOwnerType.ROLE)
               .setOwnerId(adminRoleId)
               .setResourceType(resourceType)
+              .setResourceMatcher(AuthorizationResourceMatcher.ANY)
               .setResourceId(WILDCARD_PERMISSION)
               .setPermissionTypes(resourceType.getSupportedPermissionTypes()));
     }
@@ -198,6 +201,7 @@ public final class IdentitySetupInitializer implements StreamProcessorLifecycleA
             .setOwnerType(AuthorizationOwnerType.ROLE)
             .setOwnerId(connectorsRoleId)
             .setResourceType(AuthorizationResourceType.PROCESS_DEFINITION)
+            .setResourceMatcher(AuthorizationResourceMatcher.ANY)
             .setResourceId(WILDCARD_PERMISSION)
             .setPermissionTypes(
                 Set.of(
@@ -208,6 +212,7 @@ public final class IdentitySetupInitializer implements StreamProcessorLifecycleA
             .setOwnerType(AuthorizationOwnerType.ROLE)
             .setOwnerId(connectorsRoleId)
             .setResourceType(AuthorizationResourceType.MESSAGE)
+            .setResourceMatcher(AuthorizationResourceMatcher.ANY)
             .setResourceId(WILDCARD_PERMISSION)
             .setPermissionTypes(Set.of(PermissionType.CREATE)));
     setupRecord.addTenantMember(
@@ -224,13 +229,17 @@ public final class IdentitySetupInitializer implements StreamProcessorLifecycleA
         .addAuthorization(
             new AuthorizationRecord()
                 .setOwnerId(rpaRoleId)
+                .setOwnerType(AuthorizationOwnerType.ROLE)
                 .setResourceType(AuthorizationResourceType.RESOURCE)
+                .setResourceMatcher(AuthorizationResourceMatcher.ANY)
                 .setResourceId(WILDCARD_PERMISSION)
                 .setPermissionTypes(Set.of(PermissionType.READ)))
         .addAuthorization(
             new AuthorizationRecord()
                 .setOwnerId(rpaRoleId)
+                .setOwnerType(AuthorizationOwnerType.ROLE)
                 .setResourceType(AuthorizationResourceType.PROCESS_DEFINITION)
+                .setResourceMatcher(AuthorizationResourceMatcher.ANY)
                 .setResourceId(WILDCARD_PERMISSION)
                 .setPermissionTypes(Set.of(PermissionType.UPDATE_PROCESS_INSTANCE)))
         .addTenantMember(
