@@ -7,6 +7,7 @@
  */
 package io.camunda.tasklist.webapp.api.rest.v1.controllers.external;
 
+import static io.camunda.tasklist.webapp.permission.TasklistPermissionServices.WILDCARD_RESOURCE;
 import static java.util.Objects.requireNonNullElse;
 
 import io.camunda.tasklist.exceptions.TasklistRuntimeException;
@@ -16,7 +17,9 @@ import io.camunda.tasklist.webapp.api.rest.v1.controllers.ApiErrorController;
 import io.camunda.tasklist.webapp.api.rest.v1.entities.FormResponse;
 import io.camunda.tasklist.webapp.api.rest.v1.entities.StartProcessRequest;
 import io.camunda.tasklist.webapp.dto.ProcessInstanceDTO;
+import io.camunda.tasklist.webapp.permission.TasklistPermissionServices;
 import io.camunda.tasklist.webapp.rest.exception.Error;
+import io.camunda.tasklist.webapp.rest.exception.ForbiddenActionException;
 import io.camunda.tasklist.webapp.rest.exception.InvalidRequestException;
 import io.camunda.tasklist.webapp.rest.exception.NotFoundApiException;
 import io.camunda.tasklist.webapp.security.TasklistURIs;
@@ -60,6 +63,8 @@ public class ProcessExternalController extends ApiErrorController {
 
   @Autowired private TenantService tenantService;
 
+  @Autowired private TasklistPermissionServices tasklistPermissionServices;
+
   @Operation(
       summary = "Get Form by Process BPMN id.",
       description = "Get Form by Process BPMN id.",
@@ -75,10 +80,22 @@ public class ProcessExternalController extends ApiErrorController {
             content =
                 @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = Error.class))),
+        @ApiResponse(
+            description =
+                "A forbidden error is returned when user does not have permission process definitions.",
+            responseCode = "403",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = Error.class)))
       })
   @GetMapping("{bpmnProcessId}/form")
   public ResponseEntity<FormResponse> getFormFromProcess(@PathVariable final String bpmnProcessId) {
+    if (!tasklistPermissionServices.hasPermissionToReadProcessDefinition(WILDCARD_RESOURCE)) {
+      throw new ForbiddenActionException(
+          "User does not have permission to read resource. Please check your permissions.");
+    }
     try {
       final ProcessEntity process = processStore.getProcessByBpmnProcessId(bpmnProcessId);
       if (!process.getIsPublic()) {

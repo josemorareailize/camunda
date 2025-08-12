@@ -15,6 +15,7 @@ import static io.camunda.zeebe.protocol.record.value.AuthorizationResourceType.D
 import static io.camunda.zeebe.protocol.record.value.AuthorizationResourceType.GROUP;
 import static io.camunda.zeebe.protocol.record.value.AuthorizationResourceType.MAPPING_RULE;
 import static io.camunda.zeebe.protocol.record.value.AuthorizationResourceType.PROCESS_DEFINITION;
+import static io.camunda.zeebe.protocol.record.value.AuthorizationResourceType.RESOURCE;
 import static io.camunda.zeebe.protocol.record.value.AuthorizationResourceType.ROLE;
 import static io.camunda.zeebe.protocol.record.value.AuthorizationResourceType.TENANT;
 import static io.camunda.zeebe.protocol.record.value.AuthorizationResourceType.USAGE_METRIC;
@@ -118,6 +119,10 @@ public record Authorization<T>(
 
     public Builder<T> user() {
       return resourceType(USER);
+    }
+
+    public Builder<T> resource() {
+      return resourceType(RESOURCE);
     }
 
     public Builder<T> read() {

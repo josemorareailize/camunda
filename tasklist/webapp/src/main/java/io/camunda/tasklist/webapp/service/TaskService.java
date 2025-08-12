@@ -100,6 +100,7 @@ public class TaskService {
     }
 
     final List<TaskSearchView> tasks = taskStore.getTasks(query.toTaskQuery());
+
     final Set<String> fieldNames =
         fetchFullValuesFromDB
             ? emptySet()
