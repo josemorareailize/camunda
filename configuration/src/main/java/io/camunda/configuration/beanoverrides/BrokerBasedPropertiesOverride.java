@@ -85,6 +85,7 @@ public class BrokerBasedPropertiesOverride {
     final NetworkCfg networkCfg = override.getGateway().getNetwork();
     networkCfg.setHost(grpc.getAddress());
     networkCfg.setPort(grpc.getPort());
+    networkCfg.setMinKeepAliveInterval(grpc.getMinKeepAliveInterval());
 
     populateFromSsl(override);
     populateFromInterceptors(override);
