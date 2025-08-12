@@ -17,10 +17,12 @@ public final class ApiServicesExecutorProvider {
   private final ExecutorService executor;
 
   public ApiServicesExecutorProvider(
-      final int corePoolSize, final int threadCountMultiplier, final long keepAliveSeconds) {
+      final int corePoolSizeMultiplier,
+      final int maxPoolSizeMultiplier,
+      final long keepAliveSeconds) {
     executor =
         Objects.requireNonNull(
-            create(corePoolSize, threadCountMultiplier, keepAliveSeconds),
+            create(corePoolSizeMultiplier, maxPoolSizeMultiplier, keepAliveSeconds),
             "REST API Executor Service must not be null");
   }
 
@@ -39,13 +41,19 @@ public final class ApiServicesExecutorProvider {
   /**
    * Create a customizable dynamic ThreadPoolExecutor.
    *
-   * @param corePoolSize min threads to keep alive
-   * @param threadCountMultiplier multiplier for the number of threads based on available processors
+   * @param corePoolSizeMultiplier multiplier for the number of core threads based on available
+   *     processors
+   * @param maxPoolSizeMultiplier multiplier for the maximum number of threads based on available
+   *     processors
    * @param keepAliveSeconds how long to keep idle threads above core alive
    */
   private static ExecutorService create(
-      final int corePoolSize, final int threadCountMultiplier, final long keepAliveSeconds) {
-    final int maxPoolSize = Runtime.getRuntime().availableProcessors() * threadCountMultiplier;
+      final int corePoolSizeMultiplier,
+      final int maxPoolSizeMultiplier,
+      final long keepAliveSeconds) {
+    final int availableProcessors = Runtime.getRuntime().availableProcessors();
+    final int corePoolSize = availableProcessors * corePoolSizeMultiplier;
+    final int maxPoolSize = availableProcessors * maxPoolSizeMultiplier;
     final ThreadFactory threadFactory =
         new ThreadFactory() {
           private final AtomicInteger counter = new AtomicInteger(0);

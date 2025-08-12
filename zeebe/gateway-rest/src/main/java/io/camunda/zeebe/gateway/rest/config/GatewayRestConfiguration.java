@@ -50,12 +50,12 @@ public class GatewayRestConfiguration {
 
   public static class ApiExecutorConfiguration {
 
-    private static final int DEFAULT_CORE_POOL_SIZE = 0;
-    private static final int DEFAULT_THREAD_COUNT_MULTIPLIER = 8;
+    private static final int DEFAULT_CORE_POOL_SIZE_MULTIPLIER = 1;
+    private static final int DEFAULT_MAX_POOL_SIZE_MULTIPLIER = 2;
     private static final long DEFAULT_KEEP_ALIVE_SECONDS = 60L;
 
-    private int corePoolSize = DEFAULT_CORE_POOL_SIZE;
-    private int threadCountMultiplier = DEFAULT_THREAD_COUNT_MULTIPLIER;
+    private int corePoolSize = DEFAULT_CORE_POOL_SIZE_MULTIPLIER;
+    private int threadCountMultiplier = DEFAULT_MAX_POOL_SIZE_MULTIPLIER;
     private long keepAliveSeconds = DEFAULT_KEEP_ALIVE_SECONDS;
 
     public int getCorePoolSize() {
