@@ -500,7 +500,8 @@ public class ClusteringRule extends ExternalResource {
         new DynamicClusterServices(actorScheduler, atomixCluster, meterRegistry);
     final var topologyManager = dynamicClusterServices.brokerTopologyManager();
     final var clusterTopologyService =
-        dynamicClusterServices.gatewayClusterTopologyService(topologyManager, gatewayCfg);
+        dynamicClusterServices.gatewayClusterTopologyService(
+            topologyManager, gatewayCfg.getCluster().getConfigManager().gossip());
 
     final var brokerClientConfig = config.brokerClientConfig();
     final var brokerClientConfiguration =
