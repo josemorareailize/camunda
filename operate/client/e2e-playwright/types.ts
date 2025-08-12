@@ -9,7 +9,7 @@
 type BatchOperationDto = {
   id: string;
   name: string | null;
-  type: OperationEntityType;
+  type: string;
   startDate: string;
   endDate: string | null;
   username: string;
@@ -34,32 +34,6 @@ type ProcessDto = {
   tenantId: string;
 };
 
-type OperationEntityType =
-  | 'RESOLVE_INCIDENT'
-  | 'CANCEL_PROCESS_INSTANCE'
-  | 'DELETE_PROCESS_INSTANCE'
-  | 'UPDATE_VARIABLE'
-  | 'ADD_VARIABLE'
-  | 'MODIFY_PROCESS_INSTANCE'
-  | 'DELETE_DECISION_DEFINITION'
-  | 'DELETE_PROCESS_DEFINITION'
-  | 'MIGRATE_PROCESS_INSTANCE'
-  | 'MOVE_TOKEN';
-
-interface OperationEntity {
-  id: string;
-  name: null | string;
-  type: OperationEntityType;
-  startDate: string;
-  endDate: null | string;
-  instancesCount: number;
-  operationsTotalCount: number;
-  operationsFinishedCount: number;
-  sortValues?: [string, string];
-  failedOperationsCount?: number;
-  completedOperationsCount?: number;
-}
-
 type InstanceEntityState =
   | 'ACTIVE'
   | 'COMPLETED'
@@ -70,7 +44,7 @@ type InstanceEntityState =
 interface InstanceOperationEntity {
   id?: string;
   batchOperationId?: string;
-  type: OperationEntityType;
+  type: string;
   state: 'SENT' | 'COMPLETED' | 'SCHEDULED' | 'LOCKED' | 'FAILED';
   errorMessage: null | string;
   completedDate: null | string;
@@ -298,8 +272,6 @@ export type {
   BatchOperationDto,
   ProcessVersionDto,
   ProcessDto,
-  OperationEntityType,
-  OperationEntity,
   InstanceEntityState,
   InstanceOperationEntity,
   ProcessInstancesDto,

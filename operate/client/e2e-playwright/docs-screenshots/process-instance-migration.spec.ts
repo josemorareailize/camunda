@@ -215,7 +215,7 @@ test.describe('process instance migration', () => {
           {
             ...mockMigrationOperation,
             endDate: '2023-09-29T16:23:15.684+0000',
-            operationsFinishedCount: 1,
+            operationsCompletedCount: 1,
           },
         ],
         batchOperation: mockMigrationOperation,
@@ -246,7 +246,9 @@ test.describe('process instance migration', () => {
     await expect(
       page.getByTestId('state-overlay-checkPayment-active'),
     ).toBeVisible();
-    await expect(page.getByText(mockMigrationOperation.id)).toHaveCount(1);
+    await expect(
+      page.getByText(mockMigrationOperation.batchOperationKey),
+    ).toHaveCount(1);
 
     await page.screenshot({
       path: path.join(baseDirectory, 'operations-panel.png'),

@@ -43,7 +43,7 @@ test.describe('process instance migration', () => {
           {
             ...mockMigrationOperation,
             endDate: '2023-09-29T16:23:15.684+0000',
-            operationsFinishedCount: 1,
+            operationsCompletedCount: 1,
           },
         ],
         batchOperation: mockMigrationOperation,

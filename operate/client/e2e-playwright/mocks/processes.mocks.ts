@@ -8,11 +8,11 @@
 
 import type {Route} from '@playwright/test';
 import {type GetProcessDefinitionStatisticsResponseBody} from '@vzeta/camunda-api-zod-schemas/8.8';
+import type {BatchOperation} from '@vzeta/camunda-api-zod-schemas/8.8';
 import type {
   BatchOperationDto,
   ProcessDto,
   ProcessInstancesDto,
-  OperationEntity,
   InstanceEntityState,
 } from '@/types';
 
@@ -25,8 +25,8 @@ function mockResponses({
   processXml,
   deleteProcess,
 }: {
-  batchOperations?: OperationEntity[];
-  batchOperation?: OperationEntity;
+  batchOperations?: BatchOperation[];
+  batchOperation?: BatchOperation;
   groupedProcesses?: ProcessDto[];
   statisticsV2?: GetProcessDefinitionStatisticsResponseBody;
   processInstances?: ProcessInstancesDto;
@@ -51,10 +51,15 @@ function mockResponses({
       });
     }
 
-    if (route.request().url().includes('/api/batch-operations')) {
+    if (route.request().url().includes('/v2/batch-operations/search')) {
       return route.fulfill({
         status: batchOperations === undefined ? 400 : 200,
-        body: JSON.stringify(batchOperations),
+        body: JSON.stringify({
+          items: batchOperations || [],
+          page: {
+            totalItems: batchOperations?.length || 0,
+          },
+        }),
         headers: {
           'content-type': 'application/json',
         },
@@ -778,227 +783,87 @@ const mockGroupedProcesses = [
   },
 ] as ProcessDto[];
 
-const mockNewDeleteOperation: OperationEntity = {
-  id: '9961d35a-261f-4b29-b506-8b14cc6e7993',
-  name: null,
-  type: 'DELETE_PROCESS_INSTANCE',
+const mockNewDeleteOperation: BatchOperation = {
+  batchOperationKey: '9961d35a-261f-4b29-b506-8b14cc6e7993',
+  batchOperationType: 'CANCEL_PROCESS_INSTANCE',
   startDate: '2023-09-29T16:42:04.972+0300',
   endDate: '2023-09-29T16:42:09.553+0300',
-  instancesCount: 1,
+  state: 'COMPLETED',
   operationsTotalCount: 1,
-  operationsFinishedCount: 1,
+  operationsCompletedCount: 1,
+  operationsFailedCount: 0,
 };
 
-const mockBatchOperations: OperationEntity[] = [
+const mockBatchOperations: BatchOperation[] = [
   {
-    id: '653ed5e6-49ed-4675-85bf-2c54a94d8180',
-    name: null,
-    type: 'RESOLVE_INCIDENT',
-    startDate: '2023-08-25T15:41:45.322+0300',
-    endDate: '2023-08-25T15:41:49.754+0300',
-    instancesCount: 3,
+    batchOperationKey: '653ed5e6-49ed-4675-85bf-2c54a94d8180',
+    batchOperationType: 'MIGRATE_PROCESS_INSTANCE',
+    startDate: '2023-08-25T12:41:49+0300',
+    endDate: '2023-08-25T12:41:49+0300',
+    state: 'COMPLETED',
+    operationsTotalCount: 3,
+    operationsCompletedCount: 3,
+    operationsFailedCount: 0,
+  },
+  {
+    batchOperationKey: 'bf547ac3-9a35-45b9-ab06-b80b43785154',
+    batchOperationType: 'MODIFY_PROCESS_INSTANCE',
+    startDate: '2023-08-24T08:24:27+0300',
+    endDate: '2023-08-24T08:24:27+0300',
+    state: 'COMPLETED_WITH_ERRORS',
+    operationsTotalCount: 5,
+    operationsCompletedCount: 3,
+    operationsFailedCount: 2,
+  },
+  {
+    batchOperationKey: '5dd91cae-5f0c-4e35-a698-5a7887c4fbbd',
+    batchOperationType: 'CANCEL_PROCESS_INSTANCE',
+    startDate: '2023-08-18T10:19:23+0300',
+    endDate: '2023-08-18T10:19:23+0300',
+    state: 'COMPLETED_WITH_ERRORS',
+    operationsTotalCount: 3,
+    operationsCompletedCount: 0,
+    operationsFailedCount: 3,
+  },
+  {
+    batchOperationKey: 'b1454600-5f13-4365-bb45-960e8372136b',
+    batchOperationType: 'MIGRATE_PROCESS_INSTANCE',
+    startDate: '2023-08-18T10:14:37+0300',
+    endDate: '2023-08-18T10:14:37+0300',
+    state: 'COMPLETED_WITH_ERRORS',
     operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-    completedOperationsCount: 3,
-    failedOperationsCount: 0,
+    operationsCompletedCount: 0,
+    operationsFailedCount: 1,
   },
   {
-    id: 'bf547ac3-9a35-45b9-ab06-b80b43785154',
-    name: null,
-    type: 'ADD_VARIABLE',
-    startDate: '2023-08-24T11:24:21.942+0300',
-    endDate: '2023-08-24T11:24:27.467+0300',
-    instancesCount: 5,
+    batchOperationKey: '513aa565-b7f2-440a-9523-1b2f647ddfdd',
+    batchOperationType: 'MODIFY_PROCESS_INSTANCE',
+    startDate: '2023-08-18T08:42:09+0300',
+    endDate: '2023-08-18T08:42:09+0300',
+    state: 'COMPLETED',
     operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-    completedOperationsCount: 3,
-    failedOperationsCount: 2,
+    operationsCompletedCount: 1,
+    operationsFailedCount: 0,
   },
   {
-    id: '5dd91cae-5f0c-4e35-a698-5a7887c4fbbd',
-    name: null,
-    type: 'RESOLVE_INCIDENT',
-    startDate: '2023-08-18T13:19:23.269+0300',
-    endDate: '2023-08-18T13:19:23.314+0300',
-    instancesCount: 3,
-    operationsTotalCount: 0,
-    operationsFinishedCount: 0,
-    completedOperationsCount: 0,
-    failedOperationsCount: 3,
-  },
-  {
-    id: 'b1454600-5f13-4365-bb45-960e8372136b',
-    name: null,
-    type: 'RESOLVE_INCIDENT',
-    startDate: '2023-08-18T13:14:32.297+0300',
-    endDate: '2023-08-18T13:14:37.023+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-    completedOperationsCount: 0,
-    failedOperationsCount: 1,
-  },
-  {
-    id: '513aa565-b7f2-440a-9523-1b2f647ddfdd',
-    name: null,
-    type: 'DELETE_PROCESS_INSTANCE',
-    startDate: '2023-08-18T11:42:04.972+0300',
-    endDate: '2023-08-18T11:42:09.553+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-    completedOperationsCount: 1,
-    failedOperationsCount: 0,
-  },
-  {
-    id: 'c4e125da-2b5c-42f5-badc-9a78ebd8f006',
-    name: null,
-    type: 'RESOLVE_INCIDENT',
+    batchOperationKey: 'c4e125da-2b5c-42f5-badc-9a78ebd8f006',
+    batchOperationType: 'RESOLVE_INCIDENT',
     startDate: '2023-08-15T13:47:26.687+0300',
     endDate: '2023-08-15T13:47:33.948+0300',
-    instancesCount: 1,
+    state: 'COMPLETED',
     operationsTotalCount: 1,
-    operationsFinishedCount: 1,
+    operationsCompletedCount: 1,
+    operationsFailedCount: 0,
   },
   {
-    id: '0bd1a7a8-91cc-4a82-aaa5-1a32132f6fa7',
-    name: null,
-    type: 'ADD_VARIABLE',
-    startDate: '2023-08-15T13:30:08.857+0300',
-    endDate: '2023-08-15T13:30:11.071+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: '8a8150d6-d9a8-437d-9f8a-ec277fb232f1',
-    name: null,
-    type: 'ADD_VARIABLE',
-    startDate: '2023-08-15T13:27:42.190+0300',
-    endDate: '2023-08-15T13:27:45.944+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: '01360ff5-0f46-4952-93bf-be5ca040bb7a',
-    name: null,
-    type: 'ADD_VARIABLE',
-    startDate: '2023-08-15T13:22:55.699+0300',
-    endDate: '2023-08-15T13:23:00.700+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: 'c5e97ca8-bdf9-434f-934f-506a6960d1e3',
-    name: null,
-    type: 'RESOLVE_INCIDENT',
+    batchOperationKey: 'c5e97ca8-bdf9-434f-934f-506a6960d1e3',
+    batchOperationType: 'RESOLVE_INCIDENT',
     startDate: '2023-08-15T13:17:32.235+0300',
     endDate: '2023-08-15T13:17:36.637+0300',
-    instancesCount: 1,
+    state: 'COMPLETED',
     operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: '35ccdcfc-aeac-4ec8-ac6c-db67e581b22e',
-    name: null,
-    type: 'MODIFY_PROCESS_INSTANCE',
-    startDate: '2023-08-15T10:42:17.548+0300',
-    endDate: '2023-08-15T10:42:18.818+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: '0f004110-547d-4aa3-b9c4-39d277d41f97',
-    name: null,
-    type: 'RESOLVE_INCIDENT',
-    startDate: '2023-08-14T10:46:29.261+0300',
-    endDate: '2023-08-14T10:46:34.983+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: 'fb7cfeb0-abaa-4323-8910-9d44fe031c08',
-    name: null,
-    type: 'CANCEL_PROCESS_INSTANCE',
-    startDate: '2023-08-14T08:46:05.677+0300',
-    endDate: '2023-08-14T08:46:25.020+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: 'c1331a55-3f6f-4884-837f-dfa268f7ef0c',
-    name: null,
-    type: 'CANCEL_PROCESS_INSTANCE',
-    startDate: '2023-08-14T08:46:05.459+0300',
-    endDate: '2023-08-14T08:46:25.010+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: 'af9be740-adb8-4c2b-b5b6-d14731c4a74f',
-    name: null,
-    type: 'CANCEL_PROCESS_INSTANCE',
-    startDate: '2023-08-14T08:46:06.369+0300',
-    endDate: '2023-08-14T08:46:24.990+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: 'f9ddd801-ff34-44da-8d7c-366036b6d8d8',
-    name: null,
-    type: 'CANCEL_PROCESS_INSTANCE',
-    startDate: '2023-08-14T08:46:06.344+0300',
-    endDate: '2023-08-14T08:46:14.987+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: 'dc824c36-d075-49c6-8a7e-b45eebba815f',
-    name: null,
-    type: 'CANCEL_PROCESS_INSTANCE',
-    startDate: '2023-08-14T08:46:06.439+0300',
-    endDate: '2023-08-14T08:46:14.981+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: 'cfdf3baa-e6a6-48bc-8763-487d09be2467',
-    name: null,
-    type: 'CANCEL_PROCESS_INSTANCE',
-    startDate: '2023-08-14T08:46:05.738+0300',
-    endDate: '2023-08-14T08:46:14.974+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: 'a74db3d1-4588-41a5-9e10-42cea80213a6',
-    name: null,
-    type: 'CANCEL_PROCESS_INSTANCE',
-    startDate: '2023-08-14T08:46:06.164+0300',
-    endDate: '2023-08-14T08:46:14.965+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
-  },
-  {
-    id: '9961d35a-261f-4b29-b506-8b14cc6e7992',
-    name: null,
-    type: 'CANCEL_PROCESS_INSTANCE',
-    startDate: '2023-08-14T08:46:05.569+0300',
-    endDate: '2023-08-14T08:46:14.942+0300',
-    instancesCount: 1,
-    operationsTotalCount: 1,
-    operationsFinishedCount: 1,
+    operationsCompletedCount: 1,
+    operationsFailedCount: 0,
   },
 ];
 
@@ -3406,15 +3271,14 @@ const mockProcessXml = `<?xml version="1.0" encoding="UTF-8"?>
 </bpmn:definitions>
 `;
 
-const mockMigrationOperation: OperationEntity = {
-  id: '653ed5e6-49ed-4675-85bf-2c54a94d8180',
-  name: null,
-  type: 'MIGRATE_PROCESS_INSTANCE',
+const mockMigrationOperation: BatchOperation = {
+  batchOperationKey: '653ed5e6-49ed-4675-85bf-2c54a94d8180',
+  batchOperationType: 'MIGRATE_PROCESS_INSTANCE',
   startDate: '2023-09-29T16:23:10.684+0000',
-  endDate: null,
-  instancesCount: 3,
+  state: 'ACTIVE',
   operationsTotalCount: 1,
-  operationsFinishedCount: 0,
+  operationsCompletedCount: 0,
+  operationsFailedCount: 0,
 };
 
 const mockDeleteProcess = {
