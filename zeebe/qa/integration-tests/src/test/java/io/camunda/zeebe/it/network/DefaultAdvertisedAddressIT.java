@@ -38,15 +38,15 @@ final class DefaultAdvertisedAddressIT {
           // explicitly unset the (advertised) host to force computing the default
           .withBrokerConfig(
               node -> {
-                node.getEnvMap().remove("ZEEBE_BROKER_NETWORK_ADVERTISEDHOST");
-                node.getEnvMap().remove("ZEEBE_BROKER_NETWORK_HOST");
+               // node.getEnvMap().remove("ZEEBE_BROKER_NETWORK_ADVERTISEDHOST");
+               // node.getEnvMap().remove("ZEEBE_BROKER_NETWORK_HOST");
                 node.addEnv(CREATE_SCHEMA_ENV_VAR, "false");
                 node.addEnv(UNPROTECTED_API_ENV_VAR, "true");
               })
           .withGatewayConfig(
               node -> {
-                node.getEnvMap().remove("ZEEBE_GATEWAY_CLUSTER_ADVERTISEDHOST");
-                node.getEnvMap().remove("ZEEBE_GATEWAY_CLUSTER_HOST");
+               // node.getEnvMap().remove("ZEEBE_GATEWAY_CLUSTER_ADVERTISEDHOST");
+               // node.getEnvMap().remove("ZEEBE_GATEWAY_CLUSTER_HOST");
                 node.addEnv(CREATE_SCHEMA_ENV_VAR, "false");
                 node.addEnv(UNPROTECTED_API_ENV_VAR, "true");
                 node.addEnv("CAMUNDA_LOG_LEVEL", "DEBUG");
