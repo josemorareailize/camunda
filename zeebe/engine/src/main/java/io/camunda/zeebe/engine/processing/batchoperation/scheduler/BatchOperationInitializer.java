@@ -8,7 +8,6 @@
 package io.camunda.zeebe.engine.processing.batchoperation.scheduler;
 
 import com.google.common.base.Strings;
-import io.camunda.zeebe.engine.EngineConfiguration;
 import io.camunda.zeebe.engine.metrics.BatchOperationMetrics;
 import io.camunda.zeebe.engine.processing.batchoperation.itemprovider.ItemProviderFactory;
 import io.camunda.zeebe.engine.state.batchoperation.PersistedBatchOperation;
@@ -30,15 +29,15 @@ public class BatchOperationInitializer {
 
   public BatchOperationInitializer(
       final ItemProviderFactory itemProviderFactory,
-      final EngineConfiguration engineConfiguration,
-      final int partitionId,
+      final BatchOperationPageProcessor pageProcessor,
+      final BatchOperationCommandBuilder commandBuilder,
+      final int queryPageSize,
       final BatchOperationMetrics metrics) {
     this.itemProviderFactory = itemProviderFactory;
+    this.commandBuilder = commandBuilder;
+    this.pageProcessor = pageProcessor;
+    this.queryPageSize = queryPageSize;
     this.metrics = metrics;
-    queryPageSize = engineConfiguration.getBatchOperationQueryPageSize();
-    commandBuilder = new BatchOperationCommandBuilder(partitionId);
-    pageProcessor =
-        new BatchOperationPageProcessor(engineConfiguration.getBatchOperationChunkSize());
   }
 
   public BatchOperationInitializationResult initializeBatchOperation(

@@ -56,7 +56,11 @@ public class BatchOperationExecutionScheduler implements StreamProcessorLifecycl
     initialPollingInterval = engineConfiguration.getBatchOperationSchedulerInterval();
     batchOperationInitializer =
         new BatchOperationInitializer(
-            itemProviderFactory, engineConfiguration, partitionId, metrics);
+            itemProviderFactory,
+            new BatchOperationPageProcessor(engineConfiguration.getBatchOperationChunkSize()),
+            new BatchOperationCommandBuilder(partitionId),
+            engineConfiguration.getBatchOperationQueryPageSize(),
+            metrics);
     retryHandler =
         new BatchOperationRetryHandler(
             engineConfiguration.getBatchOperationQueryRetryInitialDelay(),
