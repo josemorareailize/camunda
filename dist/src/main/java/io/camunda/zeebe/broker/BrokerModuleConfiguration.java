@@ -107,6 +107,10 @@ public class BrokerModuleConfiguration implements CloseableSilently {
 
   @Bean(destroyMethod = "close")
   public Broker broker(final ExporterRepository exporterRepository) {
+
+    LOGGER.info(
+        "Advertised host is set to '{}'", configuration.config().getNetwork().getAdvertisedHost());
+
     final SystemContext systemContext =
         new SystemContext(
             configuration.shutdownTimeout(),

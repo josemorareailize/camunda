@@ -99,6 +99,9 @@ public class GatewayModuleConfiguration implements CloseableSilently {
         configuration.config().getCluster().getMemberId(),
         VersionUtil.getVersion());
 
+    LOGGER.info(
+        "Advertised host is set to '{}'", configuration.config().getCluster().getAdvertisedHost());
+
     atomixCluster.start();
     jobStreamClient.start().join();
 
