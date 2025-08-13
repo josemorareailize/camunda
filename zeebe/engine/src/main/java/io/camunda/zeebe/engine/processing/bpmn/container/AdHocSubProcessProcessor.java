@@ -332,7 +332,8 @@ public class AdHocSubProcessProcessor
         return Either.left(
             new Failure(
                 "The output collection has the wrong type. Expected %s but was %s."
-                    .formatted(MsgPackType.ARRAY, token.getType())));
+                    .formatted(MsgPackType.ARRAY, token.getType()),
+                ErrorType.EXTRACT_VALUE_ERROR));
       }
       final int currentSize = token.getSize();
       final int valuesOffset = outputCollectionReader.getOffset();
