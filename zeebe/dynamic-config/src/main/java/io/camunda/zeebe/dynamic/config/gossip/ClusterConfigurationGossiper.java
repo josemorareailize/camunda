@@ -137,7 +137,7 @@ public final class ClusterConfigurationGossiper
   }
 
   private void sync(final MemberId toMember) {
-    LOGGER.trace("Sending sync request to {}", toMember);
+    LOGGER.debug("Sending sync request to {}", toMember);
     sendSyncRequest(toMember)
         .whenCompleteAsync(
             (response, error) -> handleSyncResponse(response, error, toMember), executor::run);
@@ -159,6 +159,7 @@ public final class ClusterConfigurationGossiper
       final Throwable error,
       final MemberId member) {
     if (error == null) {
+      LOGGER.debug("Received cluster configuration sync response from {} : {}", member, response);
       update(response);
     } else {
       LOGGER.warn("Failed to sync with {}", member, error);
@@ -177,7 +178,7 @@ public final class ClusterConfigurationGossiper
 
   private void onConfigurationUpdated(final ClusterConfiguration updatedConfiguration) {
     gossipState.setClusterConfiguration(updatedConfiguration);
-    LOGGER.trace("Updated local gossipState to {}", updatedConfiguration);
+    LOGGER.debug("Updated local gossipState to {}", updatedConfiguration);
     gossip();
     notifyListeners(updatedConfiguration);
     topologyMetrics.updateFromTopology(updatedConfiguration);
