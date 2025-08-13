@@ -14,11 +14,10 @@ import {processInstancesSelectionStore} from 'modules/stores/processInstancesSel
 import {processInstancesStore} from 'modules/stores/processInstances';
 import {panelStatesStore} from 'modules/stores/panelStates';
 import {notificationsStore} from 'modules/stores/notifications';
-import {useEffect} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {getMockQueryClient} from 'modules/react-query/mockQueryClient';
-import {mockCancelProcessInstancesBatchOperation} from 'modules/mocks/api/v2/processInstances/cancelProcessInstancesBatchOperation';
-import {mockResolveProcessInstancesIncidentsBatchOperation} from 'modules/mocks/api/v2/processInstances/resolveProcessInstancesIncidentsBatchOperation';
+import {mockCancelProcessInstancesBatchOperation} from 'modules/mocks/api/v2/processes/cancelProcessInstancesBatchOperation';
+import {mockResolveProcessInstancesIncidentsBatchOperation} from 'modules/mocks/api/v2/processes/resolveProcessInstancesIncidentsBatchOperation';
 import {mockQueryBatchOperations} from 'modules/mocks/api/v2/batchOperations/queryBatchOperations';
 
 type Props = {
@@ -60,8 +59,8 @@ describe('<ProcessOperations />', () => {
       batchOperationType: 'RESOLVE_INCIDENT',
     });
     mockQueryBatchOperations().withSuccess({
-      items: [{state: 'COMPLETED'}],
-      page: {totalItems: 1},
+      items: [],
+      page: {totalItems: 0},
     });
 
     processInstancesSelectionStore.selectProcessInstance('1');
