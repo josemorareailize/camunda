@@ -517,7 +517,8 @@ public class WebSecurityConfig {
                           .authenticationEntryPoint(authFailureHandler)
                           .accessDeniedHandler(authFailureHandler))
               .addFilterAfter(
-                  new SessionAuthenticationRefreshFilter(authenticationProvider),
+                  new SessionAuthenticationRefreshFilter(
+                      authenticationProvider, securityConfiguration.getAuthentication()),
                   SecurityContextHolderFilter.class)
               .addFilterAfter(
                   new WebApplicationAuthorizationCheckFilter(
@@ -736,7 +737,8 @@ public class WebSecurityConfig {
                           .logoutSuccessHandler(new NoContentResponseHandler())
                           .deleteCookies(SESSION_COOKIE, X_CSRF_TOKEN))
               .addFilterAfter(
-                  new SessionAuthenticationRefreshFilter(authenticationProvider),
+                  new SessionAuthenticationRefreshFilter(
+                      authenticationProvider, securityConfiguration.getAuthentication()),
                   SecurityContextHolderFilter.class)
               .addFilterAfter(
                   new WebApplicationAuthorizationCheckFilter(
