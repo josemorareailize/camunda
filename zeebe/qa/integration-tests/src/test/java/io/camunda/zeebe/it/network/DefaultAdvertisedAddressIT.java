@@ -49,6 +49,7 @@ final class DefaultAdvertisedAddressIT {
                 node.getEnvMap().remove("ZEEBE_GATEWAY_CLUSTER_HOST");
                 node.addEnv(CREATE_SCHEMA_ENV_VAR, "false");
                 node.addEnv(UNPROTECTED_API_ENV_VAR, "true");
+                node.addEnv("CAMUNDA_LOG_LEVEL", "DEBUG");
               })
           .build();
 
