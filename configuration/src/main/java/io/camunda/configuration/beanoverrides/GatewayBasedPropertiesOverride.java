@@ -9,11 +9,13 @@ package io.camunda.configuration.beanoverrides;
 
 import io.camunda.configuration.Grpc;
 import io.camunda.configuration.Interceptor;
+import io.camunda.configuration.KeyStore;
 import io.camunda.configuration.Ssl;
 import io.camunda.configuration.UnifiedConfiguration;
 import io.camunda.configuration.beans.GatewayBasedProperties;
 import io.camunda.configuration.beans.LegacyGatewayBasedProperties;
 import io.camunda.zeebe.gateway.impl.configuration.InterceptorCfg;
+import io.camunda.zeebe.gateway.impl.configuration.KeyStoreCfg;
 import io.camunda.zeebe.gateway.impl.configuration.NetworkCfg;
 import io.camunda.zeebe.gateway.impl.configuration.SecurityCfg;
 import io.camunda.zeebe.gateway.impl.configuration.ThreadsCfg;
@@ -81,10 +83,27 @@ public class GatewayBasedPropertiesOverride {
   private void populateFromSsl(final GatewayBasedProperties override) {
     final Ssl ssl =
         unifiedConfiguration.getCamunda().getApi().getGrpc().getSsl().withGatewaySslProperties();
+
     final SecurityCfg securityCfg = override.getSecurity();
     securityCfg.setEnabled(ssl.isEnabled());
     securityCfg.setCertificateChainPath(ssl.getCertificate());
     securityCfg.setPrivateKeyPath(ssl.getCertificatePrivateKey());
+
+    populateFromKeyStore(override);
+  }
+
+  private void populateFromKeyStore(final GatewayBasedProperties override) {
+    final KeyStore keyStore =
+        unifiedConfiguration
+            .getCamunda()
+            .getApi()
+            .getGrpc()
+            .getSsl()
+            .getKeyStore()
+            .withGatewayKeyStoreProperties();
+    final KeyStoreCfg keyStoreCfg = override.getSecurity().getKeyStore();
+    keyStoreCfg.setFilePath(keyStore.getFilePath());
+    keyStoreCfg.setPassword(keyStore.getPassword());
   }
 
   private void populateFromInterceptors(final GatewayBasedProperties override) {
