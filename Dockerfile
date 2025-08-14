@@ -80,8 +80,12 @@ FROM java as build
 WORKDIR /zeebe
 ENV MAVEN_OPTS -XX:MaxRAMPercentage=80
 COPY --link . ./
+
+RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 RUN --mount=type=cache,target=/root/.m2,rw \
-    ./mvnw -B -am -pl dist package -T1C -D skipChecks -D skipTests && \
+     chmod +x mvnw && \
+    ./mvnw -B -am -pl dist package -T1C -DskipChecks -DskipTests \
+    -Dmaven.gitcommitid.skip=true && \
     mv dist/target/camunda-zeebe .
 
 ### Extract zeebe from distball ###
