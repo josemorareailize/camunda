@@ -1,0 +1,90 @@
+name: "Build & Push Camunda Zeebe Image"
+
+on:
+  push:
+    branches:
+      - "8.5.20"
+  pull_request:
+    branches:
+      - "8.5.20"
+  workflow_dispatch:
+
+env:
+  REGISTRY: iad.ocir.io/idhyugs3p9e3
+  NAME: custom-zeebe
+  VERSION: 8.5.20
+
+jobs:
+  build-image:
+    name: Build & Push
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Import Secrets from Vault
+        id: import-secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          url: https://vault.b-yond.com
+          method: approle
+          path: approle/cicd
+          roleId: ${{ secrets.VAULT_ROLEID }}
+          secretId: ${{ secrets.VAULT_SECRETID }}
+          exportEnv: true
+          exportToken: true
+          tlsSkipVerify: false
+          jwtTtl: 7200
+          secrets: |
+            /providers/data/oci/byond2/devops authtoken_user | REGISTRY_USER;
+            /providers/data/oci/byond2/devops authtoken | REGISTRY_PASSWORD;
+            /providers/data/github/codefresh token | GITHUB_TOKEN;
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: josemorareailize/camunda
+          ref: 8.5.20
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -am -pl dist package -T1C -DskipChecks -DskipTests
+
+      - name: Login to OCI Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta
+        id: docker_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=${{ env.VERSION }}
+
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
