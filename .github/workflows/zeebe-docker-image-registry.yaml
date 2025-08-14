@@ -1,5 +1,5 @@
 name: "Build & Push Camunda Zeebe Image"
-
+description: Build docker image from Camunda Zeebe and push it to registry
 on:
   push:
     branches:
