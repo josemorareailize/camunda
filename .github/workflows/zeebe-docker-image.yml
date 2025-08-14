@@ -1,6 +1,12 @@
 name: "Build & Validate Camunda Zeebe Image"
 
 on:
+  push:
+    branches:
+      - "8.5.20-workflow"
+  pull_request:
+    branches:
+      - "8.5.20-workflow"
   workflow_dispatch:
 
 env:
