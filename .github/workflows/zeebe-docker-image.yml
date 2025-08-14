@@ -1,0 +1,44 @@
+name: "Build & Validate Camunda Zeebe Image"
+
+on:
+  workflow_dispatch:
+
+env:
+  NAME: custom-zeebe
+  VERSION: 8.5.20
+
+jobs:
+  build-image:
+    name: Build & Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: josemorareailize/camunda
+          ref: 8.5.20
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -am -pl dist package -T1C -DskipChecks -DskipTests
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image locally
+        run: |
+          docker build -t $NAME:$VERSION -f ./Dockerfile .
+
+      - name: Validate Docker image runs
+        run: |
+          docker run --rm $NAME:$VERSION --version || (echo "Image validation failed" && exit 1)
